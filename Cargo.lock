@@ -106,9 +106,11 @@ dependencies = [
  "futures",
  "futures-util",
  "librespot",
+ "samplerate",
  "serenity",
  "songbird",
  "tokio",
+ "tokio-stream",
  "tracing",
  "tracing-futures",
  "tracing-subscriber",
@@ -353,6 +355,15 @@ dependencies = [
  "glob",
  "libc",
  "libloading",
+]
+
+[[package]]
+name = "cmake"
+version = "0.1.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb6210b637171dfba4cda12e579ac6dc73f5165ad56133e5d72ef3131f320855"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
@@ -1296,6 +1307,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "libsamplerate-sys"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "403163258e75b5780cd6245c04cddd7f3166c5f8dd2bf5462e596c9ca4eb9653"
+dependencies = [
+ "cmake",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2099,6 +2119,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "samplerate"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e032b2b24715c4f982f483ea3abdb3c9ba444d9f63e87b2843d6f998f5ba2698"
+dependencies = [
+ "libsamplerate-sys",
 ]
 
 [[package]]

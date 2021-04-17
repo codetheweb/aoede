@@ -158,10 +158,15 @@ async fn join(ctx: &Context, msg: &Message) -> CommandResult {
             None
         );
 
-        // sleep(Duration::from_millis(5000)).await;
-        //     println!("Starting to play...");
+        // let file = std::fs::File::open("out.wav").unwrap();
 
-        // let mut file = std::fs::File::create("out.test").unwrap();
+        // handler.play_source(input::Input::new(
+        //     true,
+        //     input::reader::Reader::File(std::io::BufReader::new(file)),
+        //     input::codec::Codec::FloatPcm,
+        //     input::Container::Raw,
+        //     None
+        // ));
 
         // std::io::copy(&mut player.unwrap().lock().unwrap().emitted_sink.clone(), &mut file).unwrap();
 

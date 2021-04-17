@@ -32,6 +32,9 @@ use std::cmp;
 use serenity::prelude::TypeMapKey;
 use std::sync::mpsc::{sync_channel, Receiver, SyncSender, Sender, channel};
 
+use futures::executor::block_on;
+use tokio::time::{Instant, Duration, sleep};
+
 use byteorder::LittleEndian;
 use byteorder::ByteOrder;
 
@@ -45,13 +48,13 @@ pub struct SpotifyPlayer {
 }
 
 pub struct EmittedSink {
-    sender: Arc<Mutex<Sender<u8>>>,
+    sender: Arc<Mutex<SyncSender<u8>>>,
     pub receiver: Arc<Mutex<Receiver<u8>>>
 }
 
 impl EmittedSink {
     fn new() -> EmittedSink {
-        let (sender, receiver) = channel::<u8>();
+        let (sender, receiver) = sync_channel::<u8>(32);
 
         EmittedSink {
             sender: Arc::new(Mutex::new(sender)),
@@ -94,15 +97,21 @@ impl audio_backend::Sink for EmittedSink {
     }
 
     fn write(&mut self, packet: &AudioPacket) -> std::result::Result<(), std::io::Error> {
-        for b in packet.samples() {
-            let mut new = [0, 0, 0, 0];
+        // for b in packet.samples() {
+            let resampled = samplerate::convert(44100, 48000, 2, samplerate::ConverterType::SincBestQuality, packet.samples()).unwrap();
 
-            LittleEndian::write_f32_into(&[*b], &mut new);
+            let sender = self.sender.lock().unwrap();
 
-            for j in 0..new.len() {
-                self.sender.lock().unwrap().send(new[j]).unwrap();
+            for i in resampled {
+                let mut new = [0, 0, 0, 0];
+
+                LittleEndian::write_f32_into(&[i], &mut new);
+
+                for j in 0..new.len() {
+                    sender.send(new[j]).unwrap();
+                }
             }
-        }
+        // }
 
         // let sender = self.sender.lock().unwrap();
 
@@ -116,11 +125,19 @@ impl audio_backend::Sink for EmittedSink {
 
 impl io::Read for EmittedSink {
     fn read(&mut self, buff: &mut [u8]) -> Result<usize, io::Error> {
+        let receiver = self.receiver.lock().unwrap();
+
         for i in 0..buff.len() {
-            buff[i] = self.receiver.lock().unwrap().recv().unwrap();
+            buff[i] = receiver.recv().unwrap();
         }
 
         return Ok(buff.len());
+
+        // for i in {
+        //     buff[i] = self.receiver.lock().unwrap().recv().unwrap();
+        // }
+
+        // return Ok(4);
     }
 }
 
