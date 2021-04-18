@@ -174,6 +174,8 @@ async fn join(ctx: &Context, msg: &Message) -> CommandResult {
 
         // sleep(Duration::from_millis(5000)).await;
         //     println!("Starting to play...");
+        handler.set_bitrate(songbird::Bitrate::Auto);
+
         handler.play_source(source);
 
         check_msg(msg.channel_id.say(&ctx.http, "Playing song").await);

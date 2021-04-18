@@ -54,7 +54,7 @@ pub struct EmittedSink {
 
 impl EmittedSink {
     fn new() -> EmittedSink {
-        let (sender, receiver) = sync_channel::<u8>(32);
+        let (sender, receiver) = sync_channel::<u8>(16);
 
         EmittedSink {
             sender: Arc::new(Mutex::new(sender)),
@@ -97,8 +97,7 @@ impl audio_backend::Sink for EmittedSink {
     }
 
     fn write(&mut self, packet: &AudioPacket) -> std::result::Result<(), std::io::Error> {
-        // for b in packet.samples() {
-            let resampled = samplerate::convert(44100, 48000, 2, samplerate::ConverterType::SincBestQuality, packet.samples()).unwrap();
+            let resampled = samplerate::convert(44100, 48000, 2, samplerate::ConverterType::Linear, packet.samples()).unwrap();
 
             let sender = self.sender.lock().unwrap();
 
