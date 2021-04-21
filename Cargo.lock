@@ -104,13 +104,11 @@ version = "0.1.0"
 dependencies = [
  "byteorder",
  "futures",
- "futures-util",
  "librespot",
  "samplerate",
  "serenity",
  "songbird",
  "tokio",
- "tokio-stream",
  "tracing",
  "tracing-futures",
  "tracing-subscriber",

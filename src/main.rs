@@ -24,6 +24,10 @@ use librespot::playback::player::PlayerEvent;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use tokio::time::sleep;
+
+use std::time::Duration;
+
 // Import the `Context` to handle commands.
 use serenity::client::Context;
 
@@ -39,7 +43,7 @@ use serenity::{
         },
         StandardFramework,
     },
-    model::{channel::Message, gateway::Ready},
+    model::{channel::Message, gateway::Ready, id, voice::VoiceState},
     Result as SerenityResult,
 };
 
@@ -53,29 +57,28 @@ impl TypeMapKey for UserIdKey {
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, _ready: Ready) {
+        // TODO: handle case when user is in VC when bot starts
         println!("Ready!");
         let data = ctx.data.read().await;
 
         let player = data.get::<SpotifyPlayerKey>().unwrap();
-
-        player.lock().await.enable_connect(
-            "Aoede".to_string(),
-            DeviceType::AudioDongle,
-            1u16,
-            VolumeCtrl::default(),
-        );
 
         let c = ctx.clone();
         let p = player.clone();
 
         // Spawn event channel handler for Spotify
         tokio::spawn(async move {
-            let channel = p.lock().await.event_channel.clone().unwrap();
-            let mut receiver = channel.lock().await;
             loop {
-                let event = tokio::select! {
-                    Some(event) = receiver.recv() => event,
-                    else => { break }
+                let channel = p.lock().await.event_channel.clone().unwrap();
+                let mut receiver = channel.lock().await;
+
+                let event = match receiver.recv().await {
+                    Some(e) => e,
+                    None => {
+                        // Busy waiting bad but works fine
+                        sleep(Duration::from_millis(100)).await;
+                        continue;
+                    }
                 };
 
                 match event {
@@ -122,81 +125,119 @@ impl EventHandler for Handler {
                     }
 
                     PlayerEvent::Paused { .. } => {
-                        println!("pausedc")
+                        println!("pausedc");
+
+                        p.lock().await.disable_connect();
                     }
 
                     PlayerEvent::Playing { .. } => {
                         println!("playing")
                     }
 
-                    _ => {
-                        println!("somehting else");
-                    }
+                    _ => {}
                 }
             }
         });
     }
 
-    // async fn voice_state_update(&self, ctx: Context, _: Option<id::GuildId>, old: Option<VoiceState>, new: VoiceState) {
-    //     let data = ctx.data.read().await;
+    async fn voice_state_update(
+        &self,
+        ctx: Context,
+        _: Option<id::GuildId>,
+        old: Option<VoiceState>,
+        new: VoiceState,
+    ) {
+        let data = ctx.data.read().await;
 
-    //     // disconnect = old channel id, no new channel id
-    //     // connect = old none, new channel id
-    //     // move = check current connected channel
+        // disconnect = old channel id, no new channel id
+        // connect = old none, new channel id
+        // move = check current connected channel
 
-    //     let user_id = data.get::<UserIdKey>();
+        let user_id = data.get::<UserIdKey>();
 
-    //     if new.user_id.to_string() != user_id.unwrap().to_string() {
-    //         return;
-    //     }
+        if new.user_id.to_string() != *user_id.unwrap() {
+            return;
+        }
 
-    //     let mut disconnected = false;
+        let player = data.get::<SpotifyPlayerKey>().unwrap();
 
-    //     if old.is_some() && old.unwrap().channel_id.is_some() && new.channel_id.is_none() {
-    //         disconnected = true;
-    //     }
+        // If user just connected
+        if old.clone().is_none() {
+            // Enable casting
+            player
+                .lock()
+                .await
+                .enable_connect(
+                    "Aoede".to_string(),
+                    DeviceType::AudioDongle,
+                    1u16,
+                    VolumeCtrl::default(),
+                )
+                .await;
+            return;
+        }
 
-    //     let  player = data.get::<SpotifyPlayerKey>().unwrap();
-    //     let is_spirc_defined = player.lock().await.spirc.is_some();
+        // If user disconnected
+        if old.clone().unwrap().channel_id.is_some() && new.channel_id.is_none() {
+            // Disable casting
+            player.lock().await.disable_connect();
+            return;
+        }
 
-    //     let should_change = (disconnected && is_spirc_defined) || (!disconnected && !is_spirc_defined);
+        // If user moved channels
+        if old.unwrap().channel_id.unwrap() != new.channel_id.unwrap() {
+            println!("movding...");
+            // TODO: move with user
+            return;
+        }
 
-    //     if !should_change {
-    //         return;
-    //     }
+        // let mut disconnected = false;
 
-    //     let manager = songbird::get(&ctx).await.unwrap();
+        // if old.is_some() && old.unwrap().channel_id.is_some() && new.channel_id.is_none() {
+        //     disconnected = true;
+        // }
 
-    //     if disconnected {
-    //         let _handler = manager.leave(new.guild_id.unwrap()).await;
-    //         // player.disable_connect();
-    //     } else {
-    //         let _handler = manager.join(new.guild_id.unwrap(), new.channel_id.unwrap()).await;
+        // let  player = data.get::<SpotifyPlayerKey>().unwrap();
+        // let is_spirc_defined = player.lock().await.spirc.is_some();
 
-    //         if let Some(handler_lock) = manager.get(new.guild_id.unwrap()) {
-    //             let mut handler = handler_lock.lock().await;
+        // let should_change = (disconnected && is_spirc_defined) || (!disconnected && !is_spirc_defined);
 
-    //             player.lock().await.enable_connect("Aoede".to_string(), DeviceType::AudioDongle, 1u16, VolumeCtrl::default());
+        // if !should_change {
+        //     return;
+        // }
 
-    //             let mut decoder = input::codec::OpusDecoderState::new().unwrap();
-    //         decoder.allow_passthrough = false;
+        // let manager = songbird::get(&ctx).await.unwrap();
 
-    //         let source = input::Input::new(
-    //             true,
-    //             input::reader::Reader::Extension(Box::new(player.lock().await.emitted_sink.clone())),
-    //             input::codec::Codec::FloatPcm,
-    //             input::Container::Raw,
-    //             None
-    //         );
+        // if disconnected {
+        //     let _handler = manager.leave(new.guild_id.unwrap()).await;
+        //     // player.disable_connect();
+        // } else {
+        //     let _handler = manager.join(new.guild_id.unwrap(), new.channel_id.unwrap()).await;
 
-    //         handler.set_bitrate(songbird::Bitrate::Auto);
+        //     if let Some(handler_lock) = manager.get(new.guild_id.unwrap()) {
+        //         let mut handler = handler_lock.lock().await;
 
-    //         handler.play_source(source);
-    //     } else {
-    //         print!("could not lock");
-    //     }
-    //     }
-    // }
+        //         player.lock().await.enable_connect("Aoede".to_string(), DeviceType::AudioDongle, 1u16, VolumeCtrl::default());
+
+        //         let mut decoder = input::codec::OpusDecoderState::new().unwrap();
+        //     decoder.allow_passthrough = false;
+
+        //     let source = input::Input::new(
+        //         true,
+        //         input::reader::Reader::Extension(Box::new(player.lock().await.emitted_sink.clone())),
+        //         input::codec::Codec::FloatPcm,
+        //         input::Container::Raw,
+        //         None
+        //     );
+
+        //     handler.set_bitrate(songbird::Bitrate::Auto);
+
+        //     handler.play_source(source);
+        // } else {
+        //     print!("could not lock");
+        // }
+        // }
+    }
 }
 
 #[group]
@@ -205,6 +246,9 @@ struct General;
 
 #[tokio::main]
 async fn main() {
+    // TODO: handle volume
+    // TODO: handle cache directory
+
     tracing_subscriber::fmt::init();
 
     // Configure the client with your Discord bot token in the environment.
@@ -313,12 +357,17 @@ async fn join(ctx: &Context, msg: &Message) -> CommandResult {
 
         let player = data.get::<SpotifyPlayerKey>();
 
-        player.unwrap().lock().await.enable_connect(
-            "Aoede".to_string(),
-            DeviceType::AudioDongle,
-            1u16,
-            VolumeCtrl::default(),
-        );
+        player
+            .unwrap()
+            .lock()
+            .await
+            .enable_connect(
+                "Aoede".to_string(),
+                DeviceType::AudioDongle,
+                1u16,
+                VolumeCtrl::default(),
+            )
+            .await;
 
         let mut decoder = input::codec::OpusDecoderState::new().unwrap();
         decoder.allow_passthrough = false;

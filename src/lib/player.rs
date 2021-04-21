@@ -36,7 +36,7 @@ pub struct EmittedSink {
 
 impl EmittedSink {
     fn new() -> EmittedSink {
-        let (sender, receiver) = sync_channel::<u8>(32);
+        let (sender, receiver) = sync_channel::<u8>(48);
 
         EmittedSink {
             sender: Arc::new(Mutex::new(sender)),
@@ -183,7 +183,7 @@ impl SpotifyPlayer {
         }
     }
 
-    pub fn enable_connect(
+    pub async fn enable_connect(
         &mut self,
         device_name: String,
         device_type: DeviceType,
@@ -220,6 +220,14 @@ impl SpotifyPlayer {
 
         self.spirc = Some(Box::new(spirc));
 
-        self.event_channel = Some(Arc::new(Mutex::new(player_events)));
+        let mut channel_lock = self.event_channel.as_ref().unwrap().lock().await;
+
+        *channel_lock = player_events;
+    }
+
+    pub fn disable_connect(&mut self) {
+        if let Some(spirc) = self.spirc.as_ref() {
+            spirc.shutdown();
+        }
     }
 }
