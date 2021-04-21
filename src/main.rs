@@ -19,6 +19,7 @@ mod lib {
 }
 use lib::player::{SpotifyPlayer, SpotifyPlayerKey};
 use librespot::core::config::{DeviceType, VolumeCtrl};
+use librespot::core::mercury::MercuryError;
 use librespot::playback::config::Bitrate;
 use librespot::playback::player::PlayerEvent;
 use std::sync::Arc;
@@ -43,7 +44,7 @@ use serenity::{
         },
         StandardFramework,
     },
-    model::{channel::Message, gateway::Ready, id, voice::VoiceState},
+    model::{channel::Message, gateway, gateway::Ready, id, user, voice::VoiceState},
     Result as SerenityResult,
 };
 
@@ -96,6 +97,8 @@ impl EventHandler for Handler {
 
                 match event {
                     PlayerEvent::Stopped { .. } => {
+                        c.set_presence(None, user::OnlineStatus::Online).await;
+
                         let manager = songbird::get(&c)
                             .await
                             .expect("Songbird Voice client placed in at initialisation.")
@@ -140,11 +143,35 @@ impl EventHandler for Handler {
                     }
 
                     PlayerEvent::Paused { .. } => {
-                        println!("pausedc");
+                        c.set_presence(None, user::OnlineStatus::Online).await;
                     }
 
-                    PlayerEvent::Playing { .. } => {
-                        println!("playing")
+                    PlayerEvent::Playing { track_id, .. } => {
+                        let track: Result<librespot::metadata::Track, MercuryError> =
+                            librespot::metadata::Metadata::get(
+                                &player.lock().await.session,
+                                track_id,
+                            )
+                            .await;
+
+                        if let Ok(track) = track {
+                            let artist: Result<librespot::metadata::Artist, MercuryError> =
+                                librespot::metadata::Metadata::get(
+                                    &player.lock().await.session,
+                                    *track.artists.first().unwrap(),
+                                )
+                                .await;
+
+                            if let Ok(artist) = artist {
+                                let listening_to = format!("{}: {}", artist.name, track.name);
+
+                                c.set_presence(
+                                    Some(gateway::Activity::listening(listening_to)),
+                                    user::OnlineStatus::Online,
+                                )
+                                .await;
+                            }
+                        }
                     }
 
                     _ => {}

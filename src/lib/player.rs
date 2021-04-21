@@ -24,7 +24,7 @@ use byteorder::LittleEndian;
 pub struct SpotifyPlayer {
     player_config: PlayerConfig,
     pub emitted_sink: EmittedSink,
-    session: Session,
+    pub session: Session,
     pub spirc: Option<Box<Spirc>>,
     pub event_channel: Option<Arc<Mutex<PlayerEventChannel>>>,
 }
