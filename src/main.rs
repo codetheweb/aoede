@@ -51,7 +51,7 @@ struct Handler;
 
 pub struct UserIdKey;
 impl TypeMapKey for UserIdKey {
-    type Value = String;
+    type Value = id::UserId;
 }
 
 #[async_trait]
@@ -61,15 +61,17 @@ impl EventHandler for Handler {
         println!("Ready!");
         let data = ctx.data.read().await;
 
-        let player = data.get::<SpotifyPlayerKey>().unwrap();
+        let player = data.get::<SpotifyPlayerKey>().unwrap().clone();
+        let user_id = *data
+            .get::<UserIdKey>()
+            .expect("User ID placed in at initialisation.");
 
         let c = ctx.clone();
-        let p = player.clone();
 
         // Spawn event channel handler for Spotify
         tokio::spawn(async move {
             loop {
-                let channel = p.lock().await.event_channel.clone().unwrap();
+                let channel = player.lock().await.event_channel.clone().unwrap();
                 let mut receiver = channel.lock().await;
 
                 let event = match receiver.recv().await {
@@ -81,23 +83,36 @@ impl EventHandler for Handler {
                     }
                 };
 
+                let guild = match c.cache.guilds().await.first() {
+                    Some(guild_id) => match c.cache.guild(guild_id).await {
+                        Some(guild) => guild,
+                        None => continue,
+                    },
+                    None => {
+                        println!("Not currently in any guilds.");
+                        continue;
+                    }
+                };
+
                 match event {
                     PlayerEvent::Stopped { .. } => {
-                        println!("stopped");
-                    }
-
-                    PlayerEvent::Started { .. } => {
-                        println!("started");
                         let manager = songbird::get(&c)
                             .await
                             .expect("Songbird Voice client placed in at initialisation.")
                             .clone();
 
-                        let guild = c.cache.guild(592908269740228609).await.unwrap();
+                        let _ = manager.leave(guild.id).await;
+                    }
+
+                    PlayerEvent::Started { .. } => {
+                        let manager = songbird::get(&c)
+                            .await
+                            .expect("Songbird Voice client placed in at initialisation.")
+                            .clone();
 
                         let channel_id = guild
                             .voice_states
-                            .get(&serenity::model::id::UserId::from(273843341307936770))
+                            .get(&user_id)
                             .and_then(|voice_state| voice_state.channel_id);
 
                         let _handler = manager.join(guild.id, channel_id.unwrap()).await;
@@ -111,7 +126,7 @@ impl EventHandler for Handler {
                             let source = input::Input::new(
                                 true,
                                 input::reader::Reader::Extension(Box::new(
-                                    p.lock().await.emitted_sink.clone(),
+                                    player.lock().await.emitted_sink.clone(),
                                 )),
                                 input::codec::Codec::FloatPcm,
                                 input::Container::Raw,
@@ -126,8 +141,6 @@ impl EventHandler for Handler {
 
                     PlayerEvent::Paused { .. } => {
                         println!("pausedc");
-
-                        p.lock().await.disable_connect();
                     }
 
                     PlayerEvent::Playing { .. } => {
@@ -155,7 +168,7 @@ impl EventHandler for Handler {
 
         let user_id = data.get::<UserIdKey>();
 
-        if new.user_id.to_string() != *user_id.unwrap() {
+        if new.user_id.to_string() != user_id.unwrap().to_string() {
             return;
         }
 
@@ -169,7 +182,7 @@ impl EventHandler for Handler {
                 .await
                 .enable_connect(
                     "Aoede".to_string(),
-                    DeviceType::AudioDongle,
+                    DeviceType::GameConsole,
                     1u16,
                     VolumeCtrl::default(),
                 )
@@ -273,7 +286,7 @@ async fn main() {
         .event_handler(Handler)
         .framework(framework)
         .type_map_insert::<SpotifyPlayerKey>(player)
-        .type_map_insert::<UserIdKey>(user_id)
+        .type_map_insert::<UserIdKey>(id::UserId::from(user_id.parse::<u64>().unwrap()))
         .register_songbird()
         .await
         .expect("Err creating client");

@@ -36,7 +36,7 @@ pub struct EmittedSink {
 
 impl EmittedSink {
     fn new() -> EmittedSink {
-        let (sender, receiver) = sync_channel::<u8>(48);
+        let (sender, receiver) = sync_channel::<u8>(24);
 
         EmittedSink {
             sender: Arc::new(Mutex::new(sender)),
