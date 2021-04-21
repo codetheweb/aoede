@@ -39,7 +39,7 @@ use serenity::{
         },
         StandardFramework,
     },
-    model::{channel::Message, gateway::Ready, id, voice::VoiceState},
+    model::{channel::Message, gateway::Ready},
     Result as SerenityResult,
 };
 
@@ -52,7 +52,7 @@ impl TypeMapKey for UserIdKey {
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, ctx: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, _ready: Ready) {
         println!("Ready!");
         let data = ctx.data.read().await;
 
@@ -221,7 +221,7 @@ async fn main() {
     let user_id =
         env::var("DISCORD_USER_ID").expect("Expected a Discord user ID in the environment");
 
-    let mut player = Arc::new(Mutex::new(
+    let player = Arc::new(Mutex::new(
         SpotifyPlayer::new(username, password, Bitrate::Bitrate320, "asdf".to_string()).await,
     ));
 

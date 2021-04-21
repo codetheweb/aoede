@@ -1,10 +1,4 @@
-// use futures_util::{future, FutureExt, StreamExt};
-
-use futures::channel::oneshot;
-use futures::{Future, Stream};
-use std::sync::mpsc;
 use std::sync::Arc;
-use std::{pin::Pin, thread};
 use tokio::sync::Mutex;
 
 use librespot::core::authentication::Credentials;
@@ -12,12 +6,7 @@ use librespot::core::config::{ConnectConfig, DeviceType, SessionConfig, VolumeCt
 use librespot::core::session::Session;
 
 use librespot::audio::AudioPacket;
-use librespot::connect::discovery::discovery;
 use librespot::connect::spirc::Spirc;
-use librespot::core::cache::Cache;
-use librespot::core::keymaster;
-use librespot::core::keymaster::Token;
-use librespot::core::spotify_id::SpotifyId;
 use librespot::playback::audio_backend;
 use librespot::playback::config::Bitrate;
 use librespot::playback::config::PlayerConfig;
@@ -26,25 +15,17 @@ use librespot::playback::mixer::{AudioFilter, Mixer, MixerConfig};
 use librespot::playback::player::{Player, PlayerEventChannel};
 use serenity::prelude::TypeMapKey;
 use std::clone::Clone;
-use std::cmp;
-use std::convert::TryInto;
 use std::io;
-use std::path::PathBuf;
-use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
-use std::vec::Vec;
-
-use tokio::time::{sleep, Duration, Instant};
+use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
 
 use byteorder::ByteOrder;
 use byteorder::LittleEndian;
 
 pub struct SpotifyPlayer {
-    // player: Player,
     player_config: PlayerConfig,
     pub emitted_sink: EmittedSink,
     session: Session,
     pub spirc: Option<Box<Spirc>>,
-    remote: oneshot::Receiver<Spirc>,
     pub event_channel: Option<Arc<Mutex<PlayerEventChannel>>>,
 }
 
@@ -79,7 +60,7 @@ impl Mixer for ImpliedMixer {
         50
     }
 
-    fn set_volume(&self, volume: u16) {}
+    fn set_volume(&self, _volume: u16) {}
 
     fn get_audio_filter(&self) -> Option<Box<dyn AudioFilter + Send>> {
         None
@@ -113,17 +94,10 @@ impl audio_backend::Sink for EmittedSink {
 
             LittleEndian::write_f32_into(&[i], &mut new);
 
-            for j in 0..new.len() {
-                sender.send(new[j]).unwrap();
+            for j in new.iter() {
+                sender.send(*j).unwrap();
             }
         }
-        // }
-
-        // let sender = self.sender.lock().unwrap();
-
-        // for b in packet.oggdata() {
-        //     sender.send(*b).unwrap();
-        // }
 
         Ok(())
     }
@@ -134,17 +108,12 @@ impl io::Read for EmittedSink {
     async fn read(&mut self, buff: &mut [u8]) -> Result<usize, io::Error> {
         let receiver = self.receiver.lock().await;
 
+        #[allow(clippy::needless_range_loop)]
         for i in 0..buff.len() {
             buff[i] = receiver.recv().unwrap();
         }
 
-        return Ok(buff.len());
-
-        // for i in {
-        //     buff[i] = self.receiver.lock().unwrap().recv().unwrap();
-        // }
-
-        // return Ok(4);
+        Ok(buff.len())
     }
 }
 
@@ -156,14 +125,6 @@ impl Clone for EmittedSink {
         }
     }
 }
-
-// impl Clone for EmittedSink {
-//     fn clone(&self) -> EmittedSink {
-//         EmittedSink {
-//             data: self.data.clone()
-//         }
-//     }
-// }
 
 pub struct SpotifyPlayerKey;
 impl TypeMapKey for SpotifyPlayerKey {
@@ -181,7 +142,7 @@ impl SpotifyPlayer {
         username: String,
         password: String,
         quality: Bitrate,
-        cache_dir: String,
+        _cache_dir: String,
     ) -> SpotifyPlayer {
         let credentials = Credentials::with_password(username, password);
 
@@ -209,19 +170,15 @@ impl SpotifyPlayer {
 
         let cloned_sink = emitted_sink.clone();
 
-        let (player, rx) = Player::new(player_config.clone(), session.clone(), None, move || {
+        let (_player, rx) = Player::new(player_config.clone(), session.clone(), None, move || {
             Box::new(cloned_sink)
         });
 
-        let (remote_tx, remote_rx) = oneshot::channel::<Spirc>();
-
         SpotifyPlayer {
-            // player: player,
             player_config,
             emitted_sink,
-            session: session,
+            session,
             spirc: None,
-            remote: remote_rx,
             event_channel: Some(Arc::new(Mutex::new(rx))),
         }
     }
@@ -252,12 +209,10 @@ impl SpotifyPlayer {
             move || Box::new(cloned_sink),
         );
 
-        let cloned_config = config.clone();
         let cloned_session = self.session.clone();
 
-        let (spirc, task) = Spirc::new(cloned_config, cloned_session, player, mixer);
+        let (spirc, task) = Spirc::new(config, cloned_session, player, mixer);
 
-        // thread::spawn(|| task);
         let handle = tokio::runtime::Handle::current();
         handle.spawn(async {
             task.await;
