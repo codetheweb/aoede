@@ -1162,6 +1162,7 @@ dependencies = [
 [[package]]
 name = "librespot"
 version = "0.1.6"
+source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
 dependencies = [
  "base64 0.13.0",
  "env_logger",
@@ -1185,6 +1186,7 @@ dependencies = [
 [[package]]
 name = "librespot-audio"
 version = "0.1.6"
+source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
 dependencies = [
  "aes-ctr",
  "byteorder",
@@ -1203,10 +1205,12 @@ dependencies = [
 [[package]]
 name = "librespot-connect"
 version = "0.1.6"
+source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
 dependencies = [
  "aes-ctr",
  "base64 0.13.0",
  "block-modes",
+ "form_urlencoded",
  "futures-core",
  "futures-util",
  "hmac",
@@ -1229,11 +1233,13 @@ dependencies = [
 [[package]]
 name = "librespot-core"
 version = "0.1.6"
+source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
 dependencies = [
  "aes",
  "base64 0.13.0",
  "byteorder",
  "bytes 1.0.1",
+ "form_urlencoded",
  "futures-core",
  "futures-util",
  "hmac",
@@ -1266,6 +1272,7 @@ dependencies = [
 [[package]]
 name = "librespot-metadata"
 version = "0.1.6"
+source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
 dependencies = [
  "async-trait",
  "byteorder",
@@ -1278,6 +1285,7 @@ dependencies = [
 [[package]]
 name = "librespot-playback"
 version = "0.1.6"
+source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
 dependencies = [
  "byteorder",
  "cpal",
@@ -1297,6 +1305,7 @@ dependencies = [
 [[package]]
 name = "librespot-protocol"
 version = "0.1.6"
+source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
 dependencies = [
  "glob",
  "protobuf",
@@ -1540,6 +1549,7 @@ dependencies = [
  "autocfg",
  "num-integer",
  "num-traits 0.2.14",
+ "rand 0.8.3",
 ]
 
 [[package]]

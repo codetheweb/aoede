@@ -4,10 +4,9 @@ version = "0.1.0"
 authors = ["Max Isom <hi@maxisom.me>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-librespot = {path = "../../Downloads/librespot"}
+# TODO: Update this to stable version when async version is released
+librespot = {git = "https://github.com/librespot-org/librespot", branch = "dev"}
 songbird = "0.1.6"
 tracing = "0.1"
 tracing-subscriber = "0.2"
