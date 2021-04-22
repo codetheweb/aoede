@@ -226,57 +226,17 @@ impl EventHandler for Handler {
 
         // If user moved channels
         if old.unwrap().channel_id.unwrap() != new.channel_id.unwrap() {
-            println!("movding...");
-            // TODO: move with user
+            let manager = songbird::get(&ctx)
+                .await
+                .expect("Songbird Voice client placed in at initialisation.")
+                .clone();
+
+            if let Some(guild_id) = ctx.cache.guilds().await.first() {
+                let _handler = manager.join(*guild_id, new.channel_id.unwrap()).await;
+            }
+
             return;
         }
-
-        // let mut disconnected = false;
-
-        // if old.is_some() && old.unwrap().channel_id.is_some() && new.channel_id.is_none() {
-        //     disconnected = true;
-        // }
-
-        // let  player = data.get::<SpotifyPlayerKey>().unwrap();
-        // let is_spirc_defined = player.lock().await.spirc.is_some();
-
-        // let should_change = (disconnected && is_spirc_defined) || (!disconnected && !is_spirc_defined);
-
-        // if !should_change {
-        //     return;
-        // }
-
-        // let manager = songbird::get(&ctx).await.unwrap();
-
-        // if disconnected {
-        //     let _handler = manager.leave(new.guild_id.unwrap()).await;
-        //     // player.disable_connect();
-        // } else {
-        //     let _handler = manager.join(new.guild_id.unwrap(), new.channel_id.unwrap()).await;
-
-        //     if let Some(handler_lock) = manager.get(new.guild_id.unwrap()) {
-        //         let mut handler = handler_lock.lock().await;
-
-        //         player.lock().await.enable_connect("Aoede".to_string(), DeviceType::AudioDongle, 1u16, VolumeCtrl::default());
-
-        //         let mut decoder = input::codec::OpusDecoderState::new().unwrap();
-        //     decoder.allow_passthrough = false;
-
-        //     let source = input::Input::new(
-        //         true,
-        //         input::reader::Reader::Extension(Box::new(player.lock().await.emitted_sink.clone())),
-        //         input::codec::Codec::FloatPcm,
-        //         input::Container::Raw,
-        //         None
-        //     );
-
-        //     handler.set_bitrate(songbird::Bitrate::Auto);
-
-        //     handler.play_source(source);
-        // } else {
-        //     print!("could not lock");
-        // }
-        // }
     }
 }
 
