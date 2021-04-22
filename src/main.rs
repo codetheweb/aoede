@@ -58,7 +58,6 @@ impl TypeMapKey for UserIdKey {
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, _ready: Ready) {
-        // TODO: handle case when user is in VC when bot starts
         println!("Ready!");
         let data = ctx.data.read().await;
 
@@ -66,6 +65,36 @@ impl EventHandler for Handler {
         let user_id = *data
             .get::<UserIdKey>()
             .expect("User ID placed in at initialisation.");
+
+        let guild = match ctx.cache.guilds().await.first() {
+            Some(guild_id) => match ctx.cache.guild(guild_id).await {
+                Some(guild) => guild,
+                None => panic!("Could not find guild."),
+            },
+            None => {
+                panic!("Not currently in any guilds.");
+            }
+        };
+
+        // Handle case when user is in VC when bot starts
+        let channel_id = guild
+            .voice_states
+            .get(&user_id)
+            .and_then(|voice_state| voice_state.channel_id);
+
+        if channel_id.is_some() {
+            // Enable casting
+            player
+                .lock()
+                .await
+                .enable_connect(
+                    "Aoede".to_string(),
+                    DeviceType::GameConsole,
+                    1u16,
+                    VolumeCtrl::default(),
+                )
+                .await;
+        }
 
         let c = ctx.clone();
 
@@ -80,17 +109,6 @@ impl EventHandler for Handler {
                     None => {
                         // Busy waiting bad but works fine
                         sleep(Duration::from_millis(100)).await;
-                        continue;
-                    }
-                };
-
-                let guild = match c.cache.guilds().await.first() {
-                    Some(guild_id) => match c.cache.guild(guild_id).await {
-                        Some(guild) => guild,
-                        None => continue,
-                    },
-                    None => {
-                        println!("Not currently in any guilds.");
                         continue;
                     }
                 };
@@ -188,10 +206,6 @@ impl EventHandler for Handler {
         new: VoiceState,
     ) {
         let data = ctx.data.read().await;
-
-        // disconnect = old channel id, no new channel id
-        // connect = old none, new channel id
-        // move = check current connected channel
 
         let user_id = data.get::<UserIdKey>();
 
