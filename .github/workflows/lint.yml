@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install headers
-        run: apt-get install libasound2-dev -y
+        run: sudo apt-get install libasound2-dev -y
 
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
