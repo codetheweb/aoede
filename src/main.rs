@@ -82,11 +82,7 @@ impl EventHandler for Handler {
 
         if channel_id.is_some() {
             // Enable casting
-            player
-                .lock()
-                .await
-                .enable_connect()
-                .await;
+            player.lock().await.enable_connect().await;
         }
 
         let c = ctx.clone();
@@ -122,12 +118,18 @@ impl EventHandler for Handler {
                             .expect("Songbird Voice client placed in at initialisation.")
                             .clone();
 
-                        let channel_id = guild
+                        let channel_id = match guild
                             .voice_states
                             .get(&user_id)
-                            .and_then(|voice_state| voice_state.channel_id);
+                            .and_then(|voice_state| voice_state.channel_id)
+                        {
+                            Some(channel_id) => channel_id,
+                            None => {
+                                continue;
+                            }
+                        };
 
-                        let _handler = manager.join(guild.id, channel_id.unwrap()).await;
+                        let _handler = manager.join(guild.id, channel_id).await;
 
                         if let Some(handler_lock) = manager.get(guild.id) {
                             let mut handler = handler_lock.lock().await;
@@ -209,11 +211,7 @@ impl EventHandler for Handler {
         // If user just connected
         if old.clone().is_none() {
             // Enable casting
-            player
-                .lock()
-                .await
-                .enable_connect()
-                .await;
+            player.lock().await.enable_connect().await;
             return;
         }
 
@@ -360,12 +358,7 @@ async fn join(ctx: &Context, msg: &Message) -> CommandResult {
 
         let player = data.get::<SpotifyPlayerKey>();
 
-        player
-            .unwrap()
-            .lock()
-            .await
-            .enable_connect()
-            .await;
+        player.unwrap().lock().await.enable_connect().await;
 
         let mut decoder = input::codec::OpusDecoderState::new().unwrap();
         decoder.allow_passthrough = false;
@@ -380,24 +373,7 @@ async fn join(ctx: &Context, msg: &Message) -> CommandResult {
             None,
         );
 
-        // let file = std::fs::File::open("out.wav").unwrap();
-
-        // handler.play_source(input::Input::new(
-        //     true,
-        //     input::reader::Reader::File(std::io::BufReader::new(file)),
-        //     input::codec::Codec::FloatPcm,
-        //     input::Container::Raw,
-        //     None
-        // ));
-
-        // std::io::copy(&mut player.unwrap().lock().unwrap().emitted_sink.clone(), &mut file).unwrap();
-
-        // let source = input::Input::float_pcm(true, input::reader::Reader::Extension(Box::new(source)));
-
-        // sleep(Duration::from_millis(5000)).await;
-        //     println!("Starting to play...");
         handler.set_bitrate(songbird::Bitrate::Auto);
-
         handler.play_source(source);
 
         check_msg(msg.channel_id.say(&ctx.http, "Playing song").await);

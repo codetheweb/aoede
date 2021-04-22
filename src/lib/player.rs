@@ -1,37 +1,41 @@
-use std::sync::Arc;
-use tokio::sync::Mutex;
-
-use librespot::core::authentication::Credentials;
-use librespot::core::cache::Cache;
-use librespot::core::config::{ConnectConfig, DeviceType, SessionConfig, VolumeCtrl};
-use librespot::core::session::Session;
-
 use librespot::audio::AudioPacket;
 use librespot::connect::spirc::Spirc;
-use librespot::playback::audio_backend;
-use librespot::playback::config::Bitrate;
-use librespot::playback::config::PlayerConfig;
-use librespot::playback::config::{NormalisationMethod, NormalisationType};
-use librespot::playback::mixer::{AudioFilter, Mixer, MixerConfig};
-use librespot::playback::player::{Player, PlayerEventChannel};
+use librespot::core::{
+    authentication::Credentials,
+    cache::Cache,
+    config::{ConnectConfig, DeviceType, SessionConfig, VolumeCtrl},
+    session::Session,
+};
+use librespot::playback::{
+    audio_backend,
+    config::Bitrate,
+    config::PlayerConfig,
+    config::{NormalisationMethod, NormalisationType},
+    mixer::{AudioFilter, Mixer, MixerConfig},
+    player::{Player, PlayerEventChannel},
+};
+
 use serenity::prelude::TypeMapKey;
+
 use std::clone::Clone;
 use std::io;
-use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
+use std::sync::{
+    mpsc::{sync_channel, Receiver, SyncSender},
+    Arc, Mutex,
+};
 
-use byteorder::ByteOrder;
-use byteorder::LittleEndian;
+use byteorder::{ByteOrder, LittleEndian};
 
 pub struct SpotifyPlayer {
     player_config: PlayerConfig,
     pub emitted_sink: EmittedSink,
     pub session: Session,
     pub spirc: Option<Box<Spirc>>,
-    pub event_channel: Option<Arc<Mutex<PlayerEventChannel>>>,
+    pub event_channel: Option<Arc<tokio::sync::Mutex<PlayerEventChannel>>>,
 }
 
 pub struct EmittedSink {
-    sender: Arc<Mutex<SyncSender<u8>>>,
+    sender: Arc<SyncSender<u8>>,
     pub receiver: Arc<Mutex<Receiver<u8>>>,
 }
 
@@ -40,7 +44,7 @@ impl EmittedSink {
         let (sender, receiver) = sync_channel::<u8>(64);
 
         EmittedSink {
-            sender: Arc::new(Mutex::new(sender)),
+            sender: Arc::new(sender),
             receiver: Arc::new(Mutex::new(receiver)),
         }
     }
@@ -77,8 +81,7 @@ impl audio_backend::Sink for EmittedSink {
         Ok(())
     }
 
-    #[tokio::main]
-    async fn write(&mut self, packet: &AudioPacket) -> std::result::Result<(), std::io::Error> {
+    fn write(&mut self, packet: &AudioPacket) -> std::result::Result<(), std::io::Error> {
         let resampled = samplerate::convert(
             44100,
             48000,
@@ -88,7 +91,7 @@ impl audio_backend::Sink for EmittedSink {
         )
         .unwrap();
 
-        let sender = self.sender.lock().await;
+        let sender = self.sender.clone();
 
         for i in resampled {
             let mut new = [0, 0, 0, 0];
@@ -105,9 +108,8 @@ impl audio_backend::Sink for EmittedSink {
 }
 
 impl io::Read for EmittedSink {
-    #[tokio::main]
-    async fn read(&mut self, buff: &mut [u8]) -> Result<usize, io::Error> {
-        let receiver = self.receiver.lock().await;
+    fn read(&mut self, buff: &mut [u8]) -> Result<usize, io::Error> {
+        let receiver = self.receiver.lock().unwrap();
 
         #[allow(clippy::needless_range_loop)]
         for i in 0..buff.len() {
@@ -129,13 +131,7 @@ impl Clone for EmittedSink {
 
 pub struct SpotifyPlayerKey;
 impl TypeMapKey for SpotifyPlayerKey {
-    type Value = Arc<Mutex<SpotifyPlayer>>;
-}
-
-impl Drop for SpotifyPlayer {
-    fn drop(&mut self) {
-        println!("dropping player");
-    }
+    type Value = Arc<tokio::sync::Mutex<SpotifyPlayer>>;
 }
 
 impl SpotifyPlayer {
@@ -186,7 +182,7 @@ impl SpotifyPlayer {
             emitted_sink,
             session,
             spirc: None,
-            event_channel: Some(Arc::new(Mutex::new(rx))),
+            event_channel: Some(Arc::new(tokio::sync::Mutex::new(rx))),
         }
     }
 
