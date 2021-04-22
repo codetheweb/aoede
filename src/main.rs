@@ -18,16 +18,11 @@ mod lib {
     pub mod player;
 }
 use lib::player::{SpotifyPlayer, SpotifyPlayerKey};
-use librespot::core::config::{DeviceType, VolumeCtrl};
 use librespot::core::mercury::MercuryError;
 use librespot::playback::config::Bitrate;
 use librespot::playback::player::PlayerEvent;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-
-use tokio::time::sleep;
-
-use std::time::Duration;
 
 // Import the `Context` to handle commands.
 use serenity::client::Context;
@@ -90,12 +85,7 @@ impl EventHandler for Handler {
             player
                 .lock()
                 .await
-                .enable_connect(
-                    "Aoede".to_string(),
-                    DeviceType::GameConsole,
-                    1u16,
-                    VolumeCtrl::default(),
-                )
+                .enable_connect()
                 .await;
         }
 
@@ -110,8 +100,6 @@ impl EventHandler for Handler {
                 let event = match receiver.recv().await {
                     Some(e) => e,
                     None => {
-                        // Busy waiting bad but works fine
-                        sleep(Duration::from_millis(100)).await;
                         continue;
                     }
                 };
@@ -224,12 +212,7 @@ impl EventHandler for Handler {
             player
                 .lock()
                 .await
-                .enable_connect(
-                    "Aoede".to_string(),
-                    DeviceType::GameConsole,
-                    1u16,
-                    VolumeCtrl::default(),
-                )
+                .enable_connect()
                 .await;
             return;
         }
@@ -381,12 +364,7 @@ async fn join(ctx: &Context, msg: &Message) -> CommandResult {
             .unwrap()
             .lock()
             .await
-            .enable_connect(
-                "Aoede".to_string(),
-                DeviceType::AudioDongle,
-                1u16,
-                VolumeCtrl::default(),
-            )
+            .enable_connect()
             .await;
 
         let mut decoder = input::codec::OpusDecoderState::new().unwrap();

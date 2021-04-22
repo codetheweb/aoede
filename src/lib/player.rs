@@ -37,7 +37,7 @@ pub struct EmittedSink {
 
 impl EmittedSink {
     fn new() -> EmittedSink {
-        let (sender, receiver) = sync_channel::<u8>(24);
+        let (sender, receiver) = sync_channel::<u8>(64);
 
         EmittedSink {
             sender: Arc::new(Mutex::new(sender)),
@@ -190,19 +190,13 @@ impl SpotifyPlayer {
         }
     }
 
-    pub async fn enable_connect(
-        &mut self,
-        device_name: String,
-        device_type: DeviceType,
-        initial_volume: u16,
-        volume_ctrl: VolumeCtrl,
-    ) {
+    pub async fn enable_connect(&mut self) {
         let config = ConnectConfig {
-            name: device_name,
-            device_type,
-            volume: initial_volume,
+            name: "Aoede".to_string(),
+            device_type: DeviceType::AudioDongle,
+            volume: std::u16::MAX / 2,
             autoplay: true,
-            volume_ctrl,
+            volume_ctrl: VolumeCtrl::default(),
         };
 
         let mixer = Box::new(ImpliedMixer {});
