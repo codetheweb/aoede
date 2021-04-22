@@ -66,6 +66,9 @@ impl EventHandler for Handler {
             .get::<UserIdKey>()
             .expect("User ID placed in at initialisation.");
 
+        // Get guild so it's cached
+        let _guilds = ctx.cache.current_user().await.guilds(&ctx.http).await;
+
         let guild = match ctx.cache.guilds().await.first() {
             Some(guild_id) => match ctx.cache.guild(guild_id).await {
                 Some(guild) => guild,
@@ -260,9 +263,6 @@ struct General;
 
 #[tokio::main]
 async fn main() {
-    // TODO: handle volume
-    // TODO: handle cache directory
-
     tracing_subscriber::fmt::init();
 
     // Configure the client with your Discord bot token in the environment.
@@ -279,8 +279,14 @@ async fn main() {
     let user_id =
         env::var("DISCORD_USER_ID").expect("Expected a Discord user ID in the environment");
 
+    let mut cache_dir = None;
+
+    if let Ok(c) = env::var("CACHE_DIR") {
+        cache_dir = Some(c);
+    }
+
     let player = Arc::new(Mutex::new(
-        SpotifyPlayer::new(username, password, Bitrate::Bitrate320, "asdf".to_string()).await,
+        SpotifyPlayer::new(username, password, Bitrate::Bitrate320, cache_dir).await,
     ));
 
     let mut client = Client::builder(&token)

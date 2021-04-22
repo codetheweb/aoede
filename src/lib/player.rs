@@ -2,6 +2,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use librespot::core::authentication::Credentials;
+use librespot::core::cache::Cache;
 use librespot::core::config::{ConnectConfig, DeviceType, SessionConfig, VolumeCtrl};
 use librespot::core::session::Session;
 
@@ -142,13 +143,19 @@ impl SpotifyPlayer {
         username: String,
         password: String,
         quality: Bitrate,
-        _cache_dir: String,
+        cache_dir: Option<String>,
     ) -> SpotifyPlayer {
         let credentials = Credentials::with_password(username, password);
 
         let session_config = SessionConfig::default();
 
-        let session = Session::connect(session_config, credentials, None)
+        let mut cache: Option<Cache> = None;
+
+        if let Ok(c) = Cache::new(cache_dir.clone(), cache_dir) {
+            cache = Some(c);
+        }
+
+        let session = Session::connect(session_config, credentials, cache)
             .await
             .expect("Error creating session");
 
