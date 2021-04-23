@@ -9,11 +9,11 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v
+      - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@v
+      - uses: Swatinem/rust-cache@v1
       - run: cargo install cross
 
       - name: Set up Buildx
