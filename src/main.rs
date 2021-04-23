@@ -92,7 +92,7 @@ impl EventHandler for Handler {
                             .expect("Songbird Voice client placed in at initialisation.")
                             .clone();
 
-                        let _ = manager.leave(guild.id).await;
+                        let _ = manager.remove(guild.id).await;
                     }
 
                     PlayerEvent::Started { .. } => {
