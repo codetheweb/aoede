@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 # TODO: Update this to stable version when async version is released
-librespot = {git = "https://github.com/librespot-org/librespot", branch = "dev"}
+librespot = {git = "https://github.com/librespot-org/librespot", branch = "dev", default-features = false}
 songbird = "0.1.6"
 tracing = "0.1"
 tracing-subscriber = "0.2"
