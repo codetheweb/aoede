@@ -1,10 +1,10 @@
 <p align="center">
-  <img width="250" height="250" src=".github/logo.png">
+  <img width="250" height="250" src="https://raw.githubusercontent.com/codetheweb/aoede/main/.github/logo.png">
 </p>
 
 Aoede is a Discord music bot that **directly** streams from **Spotify to Discord**. The only interface is Spotify itself.
 
-> gif
+![Demo](https://raw.githubusercontent.com/codetheweb/aoede/main/.github/demo.gif)
 
 ## 💼 Usecases
 
