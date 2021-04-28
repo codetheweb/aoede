@@ -1,14 +1,11 @@
 on: [push]
 
-name: Build
+name: Lint
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Install headers
-        run: sudo apt-get install libasound2-dev -y
-
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
@@ -16,4 +13,4 @@ jobs:
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
         with:
-          command: build
+          command: clippy
