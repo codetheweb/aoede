@@ -22,9 +22,13 @@ jobs:
         with:
           command: build
           args: --release
+
+      - name: Prefix binary name
+        run: cp target/release/aoede* target/release/${{ matrix.os }}-aoede
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files: target/release/*
+          files: target/release/**/!(*.d|*.pdb)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
