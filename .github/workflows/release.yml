@@ -24,7 +24,12 @@ jobs:
           args: --release
 
       - name: Prefix binary name
-        run: cp target/release/aoede* target/release/${{ matrix.os }}-aoede
+        run: cp target/release/aoede target/release/${{ matrix.os }}-aoede
+        continue-on-error: true
+
+      - name: Prefix binary name
+        run: cp target/release/aoede.exe target/release/${{ matrix.os }}-aoede.exe
+        continue-on-error: true
 
       - name: Release
         uses: softprops/action-gh-release@v1
