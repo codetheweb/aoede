@@ -35,6 +35,15 @@ services:
       - DISCORD_USER_ID= # Discord user ID of the user you want Aoede to follow
 ```
 
+**Prebuilt Binaries**:
+
+Prebuilt binaries are available on the [releases page](https://github.com/codetheweb/aoede/releases). Download the binary for your platform, then:
+
+1. Set the required environment variables (see the Docker Compose section)
+2. Run the binary:
+	- For Linux / macOS, `./platform-latest-aoede`
+	- For Windows, open Command Prompt and execute `windows-latest-aoede.exe` after navigating to the correct directory
+
 **Building from source**:
 
 Requirements:
