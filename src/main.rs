@@ -108,6 +108,7 @@ impl EventHandler for Handler {
                         {
                             Some(channel_id) => channel_id,
                             None => {
+                                println!("Could not find user in VC.");
                                 continue;
                             }
                         };
@@ -133,6 +134,8 @@ impl EventHandler for Handler {
                             handler.set_bitrate(songbird::Bitrate::Auto);
 
                             handler.play_source(source);
+                        } else {
+                            println!("Could not fetch guild by ID.");
                         }
                     }
 
