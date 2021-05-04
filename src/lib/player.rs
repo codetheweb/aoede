@@ -147,7 +147,12 @@ impl SpotifyPlayer {
 
         let mut cache: Option<Cache> = None;
 
-        if let Ok(c) = Cache::new(cache_dir.clone(), cache_dir) {
+        // 4 GB
+        let mut cache_limit: u64 = 10;
+        cache_limit = cache_limit.pow(9);
+        cache_limit *= 4;
+
+        if let Ok(c) = Cache::new(cache_dir.clone(), cache_dir, Some(cache_limit)) {
             cache = Some(c);
         }
 
@@ -218,13 +223,14 @@ impl SpotifyPlayer {
         self.spirc = Some(Box::new(spirc));
 
         let mut channel_lock = self.event_channel.as_ref().unwrap().lock().await;
-
         *channel_lock = player_events;
     }
 
-    pub fn disable_connect(&mut self) {
+    pub async fn disable_connect(&mut self) {
         if let Some(spirc) = self.spirc.as_ref() {
             spirc.shutdown();
+
+            self.event_channel.as_ref().unwrap().lock().await.close();
         }
     }
 }

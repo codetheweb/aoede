@@ -5,6 +5,7 @@ use songbird::SerenityInit;
 
 mod lib {
     pub mod player;
+    // pub mod forward_mpsc;
 }
 use lib::player::{SpotifyPlayer, SpotifyPlayerKey};
 use librespot::core::mercury::MercuryError;
@@ -12,6 +13,7 @@ use librespot::playback::config::Bitrate;
 use librespot::playback::player::PlayerEvent;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tokio::time::{sleep, Duration};
 
 use serenity::client::Context;
 
@@ -37,6 +39,17 @@ impl EventHandler for Handler {
         println!("Ready!");
         println!("Invite me with https://discord.com/api/oauth2/authorize?client_id={}&permissions=36700160&scope=bot", ready.user.id);
 
+        ctx.set_presence(None, user::OnlineStatus::Online).await;
+    }
+
+    async fn cache_ready(&self, ctx: Context, guilds: Vec<id::GuildId>) {
+        let guild_id = match guilds.first() {
+            Some(guild_id) => *guild_id,
+            None => {
+                panic!("Not currently in any guilds.");
+            }
+        };
+
         let data = ctx.data.read().await;
 
         let player = data.get::<SpotifyPlayerKey>().unwrap().clone();
@@ -44,24 +57,18 @@ impl EventHandler for Handler {
             .get::<UserIdKey>()
             .expect("User ID placed in at initialisation.");
 
-        // Get guild so it's cached
-        let _guilds = ctx.cache.current_user().await.guilds(&ctx.http).await;
-
-        let guild = match ctx.cache.guilds().await.first() {
-            Some(guild_id) => match ctx.cache.guild(guild_id).await {
-                Some(guild) => guild,
-                None => panic!("Could not find guild."),
-            },
-            None => {
-                panic!("Not currently in any guilds.");
-            }
-        };
-
         // Handle case when user is in VC when bot starts
+        let guild = ctx
+            .cache
+            .guild(guild_id)
+            .await
+            .expect("Could not find guild in cache.");
+
         let channel_id = guild
             .voice_states
             .get(&user_id)
             .and_then(|voice_state| voice_state.channel_id);
+        drop(guild);
 
         if channel_id.is_some() {
             // Enable casting
@@ -70,7 +77,7 @@ impl EventHandler for Handler {
 
         let c = ctx.clone();
 
-        // Spawn event channel handler for Spotify
+        // Handle Spotify events
         tokio::spawn(async move {
             loop {
                 let channel = player.lock().await.event_channel.clone().unwrap();
@@ -79,6 +86,8 @@ impl EventHandler for Handler {
                 let event = match receiver.recv().await {
                     Some(e) => e,
                     None => {
+                        // Busy waiting bad but quick and easy
+                        sleep(Duration::from_millis(256)).await;
                         continue;
                     }
                 };
@@ -92,7 +101,7 @@ impl EventHandler for Handler {
                             .expect("Songbird Voice client placed in at initialisation.")
                             .clone();
 
-                        let _ = manager.remove(guild.id).await;
+                        let _ = manager.remove(guild_id).await;
                     }
 
                     PlayerEvent::Started { .. } => {
@@ -100,6 +109,12 @@ impl EventHandler for Handler {
                             .await
                             .expect("Songbird Voice client placed in at initialisation.")
                             .clone();
+
+                        let guild = c
+                            .cache
+                            .guild(guild_id)
+                            .await
+                            .expect("Could not find guild in cache.");
 
                         let channel_id = match guild
                             .voice_states
@@ -113,9 +128,9 @@ impl EventHandler for Handler {
                             }
                         };
 
-                        let _handler = manager.join(guild.id, channel_id).await;
+                        let _handler = manager.join(guild_id, channel_id).await;
 
-                        if let Some(handler_lock) = manager.get(guild.id) {
+                        if let Some(handler_lock) = manager.get(guild_id) {
                             let mut handler = handler_lock.lock().await;
 
                             let mut decoder = input::codec::OpusDecoderState::new().unwrap();
@@ -194,6 +209,12 @@ impl EventHandler for Handler {
 
         let player = data.get::<SpotifyPlayerKey>().unwrap();
 
+        let guild = ctx
+            .cache
+            .guild(ctx.cache.guilds().await.first().unwrap())
+            .await
+            .unwrap();
+
         // If user just connected
         if old.clone().is_none() {
             // Enable casting
@@ -204,19 +225,37 @@ impl EventHandler for Handler {
         // If user disconnected
         if old.clone().unwrap().channel_id.is_some() && new.channel_id.is_none() {
             // Disable casting
-            player.lock().await.disable_connect();
-            return;
-        }
+            player.lock().await.disable_connect().await;
 
-        // If user moved channels
-        if old.unwrap().channel_id.unwrap() != new.channel_id.unwrap() {
+            // Disconnect
             let manager = songbird::get(&ctx)
                 .await
                 .expect("Songbird Voice client placed in at initialisation.")
                 .clone();
 
-            if let Some(guild_id) = ctx.cache.guilds().await.first() {
-                let _handler = manager.join(*guild_id, new.channel_id.unwrap()).await;
+            let _handler = manager.remove(guild.id).await;
+
+            return;
+        }
+
+        // If user moved channels
+        if old.unwrap().channel_id.unwrap() != new.channel_id.unwrap() {
+            let bot_id = ctx.cache.current_user_id().await;
+
+            let bot_channel = guild
+                .voice_states
+                .get(&bot_id)
+                .and_then(|voice_state| voice_state.channel_id);
+
+            if Option::is_some(&bot_channel) {
+                let manager = songbird::get(&ctx)
+                    .await
+                    .expect("Songbird Voice client placed in at initialisation.")
+                    .clone();
+
+                if let Some(guild_id) = ctx.cache.guilds().await.first() {
+                    let _handler = manager.join(*guild_id, new.channel_id.unwrap()).await;
+                }
             }
 
             return;

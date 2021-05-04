@@ -205,22 +205,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "block-modes"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57a0e8073e8baa88212fb5823574c02ebccb395136ba9a164ab89379ec6072f0"
-dependencies = [
- "block-padding",
- "cipher",
-]
-
-[[package]]
-name = "block-padding"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
-
-[[package]]
 name = "bumpalo"
 version = "3.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -338,9 +322,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-mac"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4857fd85a0c34b3c3297875b747c1e02e06b6a0ea32dd892d8192b9ce0813ea6"
+checksum = "25fab6889090c8133f3deb8f73ba3c65a7f456f66436fc012a1b1e272b1e103e"
 dependencies = [
  "generic-array",
  "subtle",
@@ -678,9 +662,9 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hmac"
-version = "0.10.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1441c6b1e930e2817404b5046f1f989899143a12bf92de603b69f4e0aee1e15"
+checksum = "2a2a2320eb7ec0ebe8da8f744d7812d9fc4cb4d09344ac01898dbcb6a20ae69b"
 dependencies = [
  "crypto-mac",
  "digest",
@@ -934,8 +918,9 @@ dependencies = [
 
 [[package]]
 name = "librespot"
-version = "0.1.6"
-source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "450aa724dcc28a06c6f3a070e7f4b84c0800d9152bec3b012a11ff886986bd58"
 dependencies = [
  "base64 0.13.0",
  "env_logger",
@@ -952,14 +937,16 @@ dependencies = [
  "log 0.4.14",
  "rpassword",
  "sha-1",
+ "thiserror",
  "tokio",
  "url",
 ]
 
 [[package]]
 name = "librespot-audio"
-version = "0.1.6"
-source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa0e89d3e106d80600537eba02c17ea6dd8b3de3f46c99952b813b6f6d6445c0"
 dependencies = [
  "aes-ctr",
  "byteorder",
@@ -977,12 +964,12 @@ dependencies = [
 
 [[package]]
 name = "librespot-connect"
-version = "0.1.6"
-source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69425fd6c8d74779f1ec86b16e6b3114df50c8a0d94db5a5601ef634bfb5e288"
 dependencies = [
  "aes-ctr",
  "base64 0.13.0",
- "block-modes",
  "form_urlencoded",
  "futures-core",
  "futures-util",
@@ -1005,8 +992,9 @@ dependencies = [
 
 [[package]]
 name = "librespot-core"
-version = "0.1.6"
-source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df3e70dce131f5531c982ca133f04fd1d1dd4208de27291dcd9ab6841c963248"
 dependencies = [
  "aes",
  "base64 0.13.0",
@@ -1027,6 +1015,7 @@ dependencies = [
  "num-traits 0.2.14",
  "once_cell",
  "pbkdf2",
+ "priority-queue",
  "protobuf",
  "rand 0.8.3",
  "serde",
@@ -1044,8 +1033,9 @@ dependencies = [
 
 [[package]]
 name = "librespot-metadata"
-version = "0.1.6"
-source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84157ce5d901dbdcaef17ed305deba5d87171725347673a1b632a334d910af47"
 dependencies = [
  "async-trait",
  "byteorder",
@@ -1057,8 +1047,9 @@ dependencies = [
 
 [[package]]
 name = "librespot-playback"
-version = "0.1.6"
-source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59ca3df986a7e1a43008717660803e159177e86a589d484a0fc01fccd7967ad6"
 dependencies = [
  "byteorder",
  "futures-executor",
@@ -1074,8 +1065,9 @@ dependencies = [
 
 [[package]]
 name = "librespot-protocol"
-version = "0.1.6"
-source = "git+https://github.com/librespot-org/librespot?branch=dev#4925adb4f103cea20f38eee1db9f09b0d3e07e75"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c753be4c3bd0f02b30c00d5d8547f16d557654cb737e70505aec6aa9990435d"
 dependencies = [
  "glob",
  "protobuf",
@@ -1332,9 +1324,9 @@ dependencies = [
 
 [[package]]
 name = "pbkdf2"
-version = "0.7.5"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf916dd32dd26297907890d99dc2740e33f6bd9073965af4ccff2967962f5508"
+checksum = "d95f5254224e617595d2cc3cc73ff0a5eaf2637519e25f03388154e9378b6ffa"
 dependencies = [
  "crypto-mac",
  "hmac",
@@ -1434,6 +1426,16 @@ name = "ppv-lite86"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac74c624d6b2d21f425f752262f42188365d7b8ff1aff74c82e45136510a4857"
+
+[[package]]
+name = "priority-queue"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e1340009a04e81f656a4e45e295f0b1191c81de424bf940c865e33577a8e223"
+dependencies = [
+ "autocfg",
+ "indexmap",
+]
 
 [[package]]
 name = "proc-macro-hack"
