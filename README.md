@@ -37,12 +37,14 @@ services:
 
 **Prebuilt Binaries**:
 
-Prebuilt binaries are available on the [releases page](https://github.com/codetheweb/aoede/releases). Download the binary for your platform, then:
+Prebuilt binaries are available on the [releases page](https://github.com/codetheweb/aoede/releases). Download the binary for your platform, then inside a terminal session:
 
-1. Set the required environment variables (see the Docker Compose section)
-2. Run the binary:
-	- For Linux / macOS, `./platform-latest-aoede`
-	- For Windows, open Command Prompt and execute `windows-latest-aoede.exe` after navigating to the correct directory
+1. Set the required environment variables (see the Docker Compose section)	
+	- On Windows, you can use `setx DISCORD_TOKEN my-token`
+	- On Linux / macOS, you can use `export DISCORD_TOKEN=my-token`
+3. Run the binary:
+	- For Linux / macOS, `./platform-latest-aoede` after navigating to the correct directory
+	- For Windows, execute `windows-latest-aoede.exe` after navigating to the correct directory
 
 **Building from source**:
 
