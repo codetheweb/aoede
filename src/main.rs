@@ -1,4 +1,5 @@
 use std::env;
+use std::fs::read_to_string;
 
 use songbird::input;
 use songbird::SerenityInit;
@@ -11,6 +12,8 @@ use lib::player::{SpotifyPlayer, SpotifyPlayerKey};
 use librespot::core::mercury::MercuryError;
 use librespot::playback::config::Bitrate;
 use librespot::playback::player::PlayerEvent;
+use toml::from_str;
+use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
@@ -31,6 +34,18 @@ struct Handler;
 pub struct UserIdKey;
 impl TypeMapKey for UserIdKey {
     type Value = id::UserId;
+}
+
+#[derive(Deserialize)]
+pub struct Config {
+    #[serde(rename = "DISCORD_TOKEN")]
+    pub discord_token: String,
+    #[serde(rename = "SPOTIFY_USERNAME")]
+    pub spotify_username: String,
+    #[serde(rename = "SPOTIFY_PASSWORD")]
+    pub spotify_password: String,
+    #[serde(rename = "DISCORD_USER_ID")]
+    pub discord_user_id: String,
 }
 
 #[async_trait]
@@ -267,16 +282,30 @@ impl EventHandler for Handler {
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    // Configure the client with your Discord bot token in the environment.
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
-
     let framework = StandardFramework::new();
-    let username =
-        env::var("SPOTIFY_USERNAME").expect("Expected a Spotify username in the environment");
-    let password =
-        env::var("SPOTIFY_PASSWORD").expect("Expected a Spotify password in the environment");
-    let user_id =
-        env::var("DISCORD_USER_ID").expect("Expected a Discord user ID in the environment");
+
+    // Configure the client with your Discord bot token in the environment.
+    //let token = env::var("DISCORD_TOKEN");//.expect("Expected a token in the environment");
+    
+    //let username =
+    //    env::var("SPOTIFY_USERNAME");//.expect("Expected a Spotify username in the environment");
+    //let password =
+    //    env::var("SPOTIFY_PASSWORD");//.expect("Expected a Spotify password in the environment");
+    //let user_id =
+    //    env::var("DISCORD_USER_ID");//.expect("Expected a Discord user ID in the environment");
+    //let token = match env::var("DISCORD_TOKEN") {
+    //    Ok(token) => token,
+    //    Err(_) => {
+    //        let config_string = read_to_string("config.toml").expect("couldn't load config from config.toml");
+    //        let config: Config =
+    //            toml::from_str(&config_string).expect("couldn't deserialize config");
+    //            config.discord_token
+    //    },
+    //};
+    load_config_value!("DISCORD_TOKEN", discord_token, token,);
+    load_config_value!("SPOTIFY_USERNAME", spotify_username, username,);
+    load_config_value!("SPOTIFY_PASSWORD", spotify_password, password,);
+    load_config_value!("DISCORD_USER_ID", discord_user_id, user_id,);
 
     let mut cache_dir = None;
 
@@ -301,4 +330,25 @@ async fn main() {
         .start()
         .await
         .map_err(|why| println!("Client ended: {:?}", why));
+}
+
+// I hate macros, this should be illegal
+// idk how to combine those three parameters
+#[macro_export]
+macro_rules! load_config_value {
+    (
+        $env_name:expr,
+        $field_name:ident,
+        $var_name:ident,
+    ) => {
+        let $var_name = match env::var($env_name) {
+            Ok(val) => val,
+            Err(_) => {
+                let config_string = read_to_string("config.toml").expect("couldn't load config from config.toml");
+                let config: Config =
+                    toml::from_str(&config_string).expect("couldn't deserialize config");
+                    config.$field_name
+            },
+        };
+    };
 }
