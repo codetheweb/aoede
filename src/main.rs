@@ -285,23 +285,6 @@ async fn main() {
     let framework = StandardFramework::new();
 
     // Configure the client with your Discord bot token in the environment.
-    //let token = env::var("DISCORD_TOKEN");//.expect("Expected a token in the environment");
-    
-    //let username =
-    //    env::var("SPOTIFY_USERNAME");//.expect("Expected a Spotify username in the environment");
-    //let password =
-    //    env::var("SPOTIFY_PASSWORD");//.expect("Expected a Spotify password in the environment");
-    //let user_id =
-    //    env::var("DISCORD_USER_ID");//.expect("Expected a Discord user ID in the environment");
-    //let token = match env::var("DISCORD_TOKEN") {
-    //    Ok(token) => token,
-    //    Err(_) => {
-    //        let config_string = read_to_string("config.toml").expect("couldn't load config from config.toml");
-    //        let config: Config =
-    //            toml::from_str(&config_string).expect("couldn't deserialize config");
-    //            config.discord_token
-    //    },
-    //};
     load_config_value!("DISCORD_TOKEN", discord_token, token,);
     load_config_value!("SPOTIFY_USERNAME", spotify_username, username,);
     load_config_value!("SPOTIFY_PASSWORD", spotify_password, password,);
