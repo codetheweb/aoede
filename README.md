@@ -39,10 +39,13 @@ services:
 
 Prebuilt binaries are available on the [releases page](https://github.com/codetheweb/aoede/releases). Download the binary for your platform, then inside a terminal session:
 
-1. Set the required environment variables (see the Docker Compose section)	
-	- On Windows, you can use `setx DISCORD_TOKEN my-token`
-	- On Linux / macOS, you can use `export DISCORD_TOKEN=my-token`
-3. Run the binary:
+1. Configuration:
+	- Rename the `config.sample.toml` file to `config.toml` and update the config keys <br>
+	**or**
+	- use env variables (see docker-compose section above)
+		- On Windows, you can use `setx DISCORD_TOKEN my-token`
+		- On Linux / macOS, you can use `export DISCORD_TOKEN=my-token`
+2. Run the binary:
 	- For Linux / macOS, `./platform-latest-aoede` after navigating to the correct directory
 	- For Windows, execute `windows-latest-aoede.exe` after navigating to the correct directory
 
