@@ -39,10 +39,9 @@ services:
 
 Prebuilt binaries are available on the [releases page](https://github.com/codetheweb/aoede/releases). Download the binary for your platform, then inside a terminal session:
 
-1. Configuration:
-	- Rename the `config.sample.toml` file to `config.toml` and update the config keys <br>
-	**or**
-	- use env variables (see docker-compose section above)
+1. There are two options to make configuration values available to Aoede:
+	1. Rename the `config.sample.toml` file to `config.toml` and update the config values
+	2. Use environment variables (see the Docker Compose section above):
 		- On Windows, you can use `setx DISCORD_TOKEN my-token`
 		- On Linux / macOS, you can use `export DISCORD_TOKEN=my-token`
 2. Run the binary:
