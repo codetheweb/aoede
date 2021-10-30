@@ -1,19 +1,17 @@
 use std::env;
-use std::fs::read_to_string;
 
 use songbird::input;
 use songbird::SerenityInit;
 
 mod lib {
+    pub mod config;
     pub mod player;
-    // pub mod forward_mpsc;
 }
+use lib::config::ConfigWrapper;
 use lib::player::{SpotifyPlayer, SpotifyPlayerKey};
 use librespot::core::mercury::MercuryError;
 use librespot::playback::config::Bitrate;
 use librespot::playback::player::PlayerEvent;
-use toml::from_str;
-use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
@@ -31,21 +29,9 @@ use serenity::{
 
 struct Handler;
 
-pub struct UserIdKey;
-impl TypeMapKey for UserIdKey {
-    type Value = id::UserId;
-}
-
-#[derive(Deserialize)]
-pub struct Config {
-    #[serde(rename = "DISCORD_TOKEN")]
-    pub discord_token: String,
-    #[serde(rename = "SPOTIFY_USERNAME")]
-    pub spotify_username: String,
-    #[serde(rename = "SPOTIFY_PASSWORD")]
-    pub spotify_password: String,
-    #[serde(rename = "DISCORD_USER_ID")]
-    pub discord_user_id: String,
+pub struct ConfigKey;
+impl TypeMapKey for ConfigKey {
+    type Value = ConfigWrapper;
 }
 
 #[async_trait]
@@ -68,9 +54,7 @@ impl EventHandler for Handler {
         let data = ctx.data.read().await;
 
         let player = data.get::<SpotifyPlayerKey>().unwrap().clone();
-        let user_id = *data
-            .get::<UserIdKey>()
-            .expect("User ID placed in at initialisation.");
+        let config = data.get::<ConfigKey>().unwrap().clone();
 
         // Handle case when user is in VC when bot starts
         let guild = ctx
@@ -81,7 +65,7 @@ impl EventHandler for Handler {
 
         let channel_id = guild
             .voice_states
-            .get(&user_id)
+            .get(&config.config.discord_user_id)
             .and_then(|voice_state| voice_state.channel_id);
         drop(guild);
 
@@ -133,7 +117,7 @@ impl EventHandler for Handler {
 
                         let channel_id = match guild
                             .voice_states
-                            .get(&user_id)
+                            .get(&config.config.discord_user_id)
                             .and_then(|voice_state| voice_state.channel_id)
                         {
                             Some(channel_id) => channel_id,
@@ -216,9 +200,9 @@ impl EventHandler for Handler {
     ) {
         let data = ctx.data.read().await;
 
-        let user_id = data.get::<UserIdKey>();
+        let config = data.get::<ConfigKey>().unwrap();
 
-        if new.user_id.to_string() != user_id.unwrap().to_string() {
+        if new.user_id.to_string() != config.config.discord_user_id.to_string() {
             return;
         }
 
@@ -285,10 +269,11 @@ async fn main() {
     let framework = StandardFramework::new();
 
     // Configure the client with your Discord bot token in the environment.
-    load_config_value!("DISCORD_TOKEN", discord_token, token,);
-    load_config_value!("SPOTIFY_USERNAME", spotify_username, username,);
-    load_config_value!("SPOTIFY_PASSWORD", spotify_password, password,);
-    load_config_value!("DISCORD_USER_ID", discord_user_id, user_id,);
+    // load_config_value!("DISCORD_TOKEN", discord_token, token,);
+    // load_config_value!("SPOTIFY_USERNAME", spotify_username, username,);
+    // load_config_value!("SPOTIFY_PASSWORD", spotify_password, password,);
+    // load_config_value!("DISCORD_USER_ID", discord_user_id, user_id,);
+    let config = ConfigWrapper::new();
 
     let mut cache_dir = None;
 
@@ -297,14 +282,20 @@ async fn main() {
     }
 
     let player = Arc::new(Mutex::new(
-        SpotifyPlayer::new(username, password, Bitrate::Bitrate320, cache_dir).await,
+        SpotifyPlayer::new(
+            config.config.spotify_username.clone(),
+            config.config.spotify_password.clone(),
+            Bitrate::Bitrate320,
+            cache_dir,
+        )
+        .await,
     ));
 
-    let mut client = Client::builder(&token)
+    let mut client = Client::builder(&config.config.discord_token)
         .event_handler(Handler)
         .framework(framework)
         .type_map_insert::<SpotifyPlayerKey>(player)
-        .type_map_insert::<UserIdKey>(id::UserId::from(user_id.parse::<u64>().unwrap()))
+        .type_map_insert::<ConfigKey>(config)
         .register_songbird()
         .await
         .expect("Err creating client");
@@ -313,25 +304,4 @@ async fn main() {
         .start()
         .await
         .map_err(|why| println!("Client ended: {:?}", why));
-}
-
-// I hate macros, this should be illegal
-// idk how to combine those three parameters
-#[macro_export]
-macro_rules! load_config_value {
-    (
-        $env_name:expr,
-        $field_name:ident,
-        $var_name:ident,
-    ) => {
-        let $var_name = match env::var($env_name) {
-            Ok(val) => val,
-            Err(_) => {
-                let config_string = read_to_string("config.toml").expect("couldn't load config from config.toml");
-                let config: Config =
-                    toml::from_str(&config_string).expect("couldn't deserialize config");
-                    config.$field_name
-            },
-        };
-    };
 }
