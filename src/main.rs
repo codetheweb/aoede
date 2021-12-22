@@ -25,6 +25,7 @@ use serenity::{
     framework::StandardFramework,
     model::{gateway, gateway::Ready, id, user, voice::VoiceState},
 };
+use songbird::input::Metadata;
 
 struct Handler;
 
@@ -143,10 +144,22 @@ impl EventHandler for Handler {
                                 )),
                                 input::codec::Codec::FloatPcm,
                                 input::Container::Raw,
-                                None,
+                                Some(Metadata {
+                                    track: None,
+                                    title: None,
+                                    artist: None,
+                                    date: None,
+                                    channels: Some(2),
+                                    channel: None,
+                                    start_time: None,
+                                    duration: None,
+                                    sample_rate: Some(44100),
+                                    source_url: None,
+                                    thumbnail: None
+                                }),
                             );
 
-                            handler.set_bitrate(songbird::Bitrate::Auto);
+                            handler.set_bitrate(songbird::driver::Bitrate::Auto);
 
                             handler.play_source(source);
                         } else {

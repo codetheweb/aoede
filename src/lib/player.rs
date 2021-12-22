@@ -1,16 +1,15 @@
-use librespot::audio::AudioPacket;
+use librespot::playback::decoder::AudioPacket;
 use librespot::connect::spirc::Spirc;
 use librespot::core::{
     authentication::Credentials,
     cache::Cache,
-    config::{ConnectConfig, DeviceType, SessionConfig, VolumeCtrl},
+    config::{ConnectConfig, DeviceType, SessionConfig},
     session::Session,
 };
 use librespot::playback::{
     audio_backend,
     config::Bitrate,
     config::PlayerConfig,
-    config::{NormalisationMethod, NormalisationType},
     mixer::{AudioFilter, Mixer, MixerConfig},
     player::{Player, PlayerEventChannel},
 };
@@ -25,6 +24,10 @@ use std::sync::{
 };
 
 use byteorder::{ByteOrder, LittleEndian};
+use librespot::playback::audio_backend::SinkError;
+use librespot::playback::convert::Converter;
+use songbird::input::reader::MediaSource;
+use std::io::SeekFrom;
 
 pub struct SpotifyPlayer {
     player_config: PlayerConfig,
@@ -53,19 +56,15 @@ impl EmittedSink {
 struct ImpliedMixer {}
 
 impl Mixer for ImpliedMixer {
-    fn open(_config: Option<MixerConfig>) -> ImpliedMixer {
+    fn open(_config: MixerConfig) -> ImpliedMixer {
         ImpliedMixer {}
     }
 
-    fn start(&self) {}
-
-    fn stop(&self) {}
+    fn set_volume(&self, _volume: u16) {}
 
     fn volume(&self) -> u16 {
         50
     }
-
-    fn set_volume(&self, _volume: u16) {}
 
     fn get_audio_filter(&self) -> Option<Box<dyn AudioFilter + Send>> {
         None
@@ -73,23 +72,25 @@ impl Mixer for ImpliedMixer {
 }
 
 impl audio_backend::Sink for EmittedSink {
-    fn start(&mut self) -> std::result::Result<(), std::io::Error> {
+    fn start(&mut self) -> std::result::Result<(), SinkError> {
         Ok(())
     }
 
-    fn stop(&mut self) -> std::result::Result<(), std::io::Error> {
+    fn stop(&mut self) -> std::result::Result<(), SinkError> {
         Ok(())
     }
 
-    fn write(&mut self, packet: &AudioPacket) -> std::result::Result<(), std::io::Error> {
+    fn write(&mut self, packet: &AudioPacket, _converter: &mut Converter) -> std::result::Result<(), SinkError> {
+        let samples: Vec<f32> = packet.samples().unwrap().iter().map(|s| *s as f32).collect();
         let resampled = samplerate::convert(
             44100,
             48000,
             2,
             samplerate::ConverterType::Linear,
-            packet.samples(),
-        )
-        .unwrap();
+            &samples,
+        ).unwrap();
+
+        println!("Packet length: {}", packet.samples().unwrap().len());
 
         let sender = self.sender.clone();
 
@@ -107,7 +108,7 @@ impl audio_backend::Sink for EmittedSink {
     }
 }
 
-impl io::Read for EmittedSink {
+impl std::io::Read for EmittedSink {
     fn read(&mut self, buff: &mut [u8]) -> Result<usize, io::Error> {
         let receiver = self.receiver.lock().unwrap();
 
@@ -117,6 +118,22 @@ impl io::Read for EmittedSink {
         }
 
         Ok(buff.len())
+    }
+}
+
+impl std::io::Seek for EmittedSink {
+    fn seek(&mut self, _pos: SeekFrom) -> std::io::Result<u64> {
+        unreachable!()
+    }
+}
+
+impl MediaSource for EmittedSink {
+    fn is_seekable(&self) -> bool {
+        false
+    }
+
+    fn len(&self) -> Option<u64> {
+        None
     }
 }
 
@@ -145,34 +162,18 @@ impl SpotifyPlayer {
 
         let session_config = SessionConfig::default();
 
-        let mut cache: Option<Cache> = None;
-
         // 4 GB
         let mut cache_limit: u64 = 10;
         cache_limit = cache_limit.pow(9);
         cache_limit *= 4;
 
-        if let Ok(c) = Cache::new(cache_dir.clone(), cache_dir, Some(cache_limit)) {
-            cache = Some(c);
-        }
+        let cache = Cache::new(cache_dir.clone(), cache_dir, Some(cache_limit)).ok();
 
         let session = Session::connect(session_config, credentials, cache)
-            .await
-            .expect("Error creating session");
+            .await.expect("Error creating session");
 
-        let player_config = PlayerConfig {
-            bitrate: quality,
-            normalisation: false,
-            normalisation_type: NormalisationType::default(),
-            normalisation_method: NormalisationMethod::default(),
-            normalisation_pregain: 0.0,
-            normalisation_threshold: -1.0,
-            normalisation_attack: 0.005,
-            normalisation_release: 0.1,
-            normalisation_knee: 1.0,
-            gapless: true,
-            passthrough: false,
-        };
+        let mut player_config = PlayerConfig::default();
+        player_config.bitrate = quality;
 
         let emitted_sink = EmittedSink::new();
 
@@ -195,9 +196,9 @@ impl SpotifyPlayer {
         let config = ConnectConfig {
             name: "Aoede".to_string(),
             device_type: DeviceType::AudioDongle,
-            volume: std::u16::MAX / 2,
+            initial_volume: Some(std::u16::MAX / 2),
+            has_volume_ctrl: false,
             autoplay: true,
-            volume_ctrl: VolumeCtrl::default(),
         };
 
         let mixer = Box::new(ImpliedMixer {});
