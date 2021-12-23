@@ -28,6 +28,8 @@ use librespot::playback::audio_backend::SinkError;
 use librespot::playback::convert::Converter;
 use songbird::input::reader::MediaSource;
 use std::io::SeekFrom;
+use std::collections::VecDeque;
+use rubato::{Resampler, FftFixedInOut};
 
 pub struct SpotifyPlayer {
     player_config: PlayerConfig,
@@ -40,6 +42,9 @@ pub struct SpotifyPlayer {
 pub struct EmittedSink {
     sender: Arc<SyncSender<u8>>,
     pub receiver: Arc<Mutex<Receiver<u8>>>,
+    input_buffer_c0: Arc<Mutex<VecDeque<f32>>>,
+    input_buffer_c1: Arc<Mutex<VecDeque<f32>>>,
+    resampler: Arc<Mutex<FftFixedInOut<f32>>>,
 }
 
 impl EmittedSink {
@@ -49,6 +54,14 @@ impl EmittedSink {
         EmittedSink {
             sender: Arc::new(sender),
             receiver: Arc::new(Mutex::new(receiver)),
+            input_buffer_c0: Arc::new(Mutex::new(VecDeque::new())),
+            input_buffer_c1: Arc::new(Mutex::new(VecDeque::new())),
+            resampler: Arc::new(Mutex::new(FftFixedInOut::<f32>::new(
+                44100,
+                songbird::constants::SAMPLE_RATE_RAW,
+                2048,
+                2,
+            ))),
         }
     }
 }
@@ -81,26 +94,35 @@ impl audio_backend::Sink for EmittedSink {
     }
 
     fn write(&mut self, packet: &AudioPacket, _converter: &mut Converter) -> std::result::Result<(), SinkError> {
-        let samples: Vec<f32> = packet.samples().unwrap().iter().map(|s| *s as f32).collect();
-        let resampled = samplerate::convert(
-            44100,
-            48000,
-            2,
-            samplerate::ConverterType::Linear,
-            &samples,
-        ).unwrap();
+        let mut input_buffer_c0 = self.input_buffer_c0.lock().unwrap();
+        let mut input_buffer_c1 = self.input_buffer_c1.lock().unwrap();
+        for c in packet.samples().unwrap().chunks_exact(2) {
+            input_buffer_c0.push_back(c[0] as f32);
+            input_buffer_c1.push_back(c[1] as f32);
+        }
 
-        println!("Packet length: {}", packet.samples().unwrap().len());
+        let mut resampler = self.resampler.lock().unwrap();
 
-        let sender = self.sender.clone();
+        while input_buffer_c0.len() >= resampler.nbr_frames_needed() {
+            let frames = resampler.nbr_frames_needed();
+            let slice0 = input_buffer_c0.make_contiguous();
+            let slice1 = input_buffer_c1.make_contiguous();
+            let resampled = resampler.process(
+                &[&slice0[0..frames], &slice1[0..frames]]
+            ).unwrap();
 
-        for i in resampled {
-            let mut new = [0, 0, 0, 0];
+            input_buffer_c0.drain(0..frames);
+            input_buffer_c1.drain(0..frames);
 
-            LittleEndian::write_f32_into(&[i], &mut new);
+            let sender = self.sender.clone();
 
-            for j in new.iter() {
-                sender.send(*j).unwrap();
+            for i in 0..resampled[0].len() {
+                let mut data = [0u8; 8];
+                LittleEndian::write_f32_into(&[resampled[0][i], resampled[1][i]], &mut data);
+
+                for b in data {
+                    sender.send(b).unwrap();
+                }
             }
         }
 
@@ -142,6 +164,9 @@ impl Clone for EmittedSink {
         EmittedSink {
             receiver: self.receiver.clone(),
             sender: self.sender.clone(),
+            input_buffer_c0: self.input_buffer_c0.clone(),
+            input_buffer_c1: self.input_buffer_c1.clone(),
+            resampler: self.resampler.clone(),
         }
     }
 }

@@ -84,7 +84,7 @@ dependencies = [
  "byteorder",
  "futures",
  "librespot",
- "samplerate",
+ "rubato",
  "serenity",
  "songbird",
  "tokio",
@@ -280,15 +280,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ee52072ec15386f770805afd189a01c8841be8696bed250fa2f13c4c0d6dfb7"
 dependencies = [
  "generic-array",
-]
-
-[[package]]
-name = "cmake"
-version = "0.1.46"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7b858541263efe664aead4a5209a4ae5c5d2811167d4ed4ee0944503f8d2089"
-dependencies = [
- "cc",
 ]
 
 [[package]]
@@ -1097,15 +1088,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "libsamplerate-sys"
-version = "0.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "403163258e75b5780cd6245c04cddd7f3166c5f8dd2bf5462e596c9ca4eb9653"
-dependencies = [
- "cmake",
-]
-
-[[package]]
 name = "lock_api"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1254,6 +1236,15 @@ dependencies = [
  "num-integer",
  "num-traits 0.2.14",
  "rand 0.8.4",
+]
+
+[[package]]
+name = "num-complex"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26873667bbbb7c5182d4a37c1add32cdf09f841af72da53318fdb81543c15085"
+dependencies = [
+ "num-traits 0.2.14",
 ]
 
 [[package]]
@@ -1440,6 +1431,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed0cfbc8191465bed66e1718596ee0b0b35d5ee1f41c5df2189d0fe8bde535ba"
 
 [[package]]
+name = "primal-check"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01419cee72c1a1ca944554e23d83e483e1bccf378753344e881de28b5487511d"
+dependencies = [
+ "num-integer",
+]
+
+[[package]]
 name = "priority-queue"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1584,6 +1584,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "realfft"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7695c87f31dc3644760f23fb59a3fed47659703abf76cf2d111f03b9e712342"
+dependencies = [
+ "rustfft",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1692,12 +1701,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "rubato"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d29cf25e25288b595458df0e00c3065db08c31afe4b4e5a74cbfc5a9b8e763cd"
+dependencies = [
+ "log",
+ "num-complex",
+ "num-integer",
+ "num-traits 0.2.14",
+ "realfft",
+]
+
+[[package]]
 name = "rustc_version"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
 dependencies = [
  "semver",
+]
+
+[[package]]
+name = "rustfft"
+version = "6.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1d089e5c57521629a59f5f39bca7434849ff89bd6873b521afe389c1c602543"
+dependencies = [
+ "num-complex",
+ "num-integer",
+ "num-traits 0.2.14",
+ "primal-check",
+ "strength_reduce",
+ "transpose",
 ]
 
 [[package]]
@@ -1754,15 +1790,6 @@ checksum = "ecbd2eb639fd7cab5804a0837fe373cc2172d15437e804c054a9fb885cb923b0"
 dependencies = [
  "cipher 0.3.0",
  "zeroize",
-]
-
-[[package]]
-name = "samplerate"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e032b2b24715c4f982f483ea3abdb3c9ba444d9f63e87b2843d6f998f5ba2698"
-dependencies = [
- "libsamplerate-sys",
 ]
 
 [[package]]
@@ -2039,6 +2066,12 @@ dependencies = [
  "futures-util",
  "loom",
 ]
+
+[[package]]
+name = "strength_reduce"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3ff2f71c82567c565ba4b3009a9350a96a7269eaa4001ebedae926230bc2254"
 
 [[package]]
 name = "subtle"
@@ -2326,6 +2359,16 @@ dependencies = [
  "tracing-core",
  "tracing-log",
  "tracing-serde",
+]
+
+[[package]]
+name = "transpose"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95f9c900aa98b6ea43aee227fd680550cdec726526aab8ac801549eadb25e39f"
+dependencies = [
+ "num-integer",
+ "strength_reduce",
 ]
 
 [[package]]
