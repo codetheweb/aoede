@@ -17,7 +17,7 @@ use librespot::playback::{
 use serenity::prelude::TypeMapKey;
 
 use std::clone::Clone;
-use std::io;
+use std::{io, mem};
 use std::sync::{
     mpsc::{sync_channel, Receiver, SyncSender},
     Arc, Mutex,
@@ -48,7 +48,7 @@ pub struct EmittedSink {
 
 impl EmittedSink {
     fn new() -> EmittedSink {
-        let (sender, receiver) = sync_channel::<u8>(64);
+        let (sender, receiver) = sync_channel::<u8>(2 * mem::size_of::<f32>() * 2048 * 2);
 
         let resampler = FftFixedInOut::<f32>::new(
             librespot::playback::SAMPLE_RATE as usize,
@@ -138,9 +138,12 @@ impl std::io::Read for EmittedSink {
     fn read(&mut self, buff: &mut [u8]) -> Result<usize, io::Error> {
         let receiver = self.receiver.lock().unwrap();
 
-        #[allow(clippy::needless_range_loop)]
         for i in 0..buff.len() {
-            buff[i] = receiver.recv().unwrap();
+            if let Some(data) = receiver.try_recv().ok() {
+                buff[i] = data;
+            } else {
+                return Ok(i);
+            }
         }
 
         Ok(buff.len())
@@ -176,6 +179,7 @@ impl Clone for EmittedSink {
 }
 
 pub struct SpotifyPlayerKey;
+
 impl TypeMapKey for SpotifyPlayerKey {
     type Value = Arc<tokio::sync::Mutex<SpotifyPlayer>>;
 }
