@@ -54,7 +54,7 @@ impl EmittedSink {
             receiver: Arc::new(Mutex::new(receiver)),
             input_buffer: Arc::new(Mutex::new((Vec::new(), Vec::new()))),
             resampler: Arc::new(Mutex::new(FftFixedInOut::<f32>::new(
-                44100,
+                librespot::playback::SAMPLE_RATE as usize,
                 songbird::constants::SAMPLE_RATE_RAW,
                 2048,
                 2,
