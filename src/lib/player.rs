@@ -21,6 +21,7 @@ use std::{io, mem};
 use std::sync::{
     mpsc::{sync_channel, Receiver, SyncSender},
     Arc, Mutex,
+    atomic::AtomicU16
 };
 
 use byteorder::{ByteOrder, LittleEndian};
@@ -29,6 +30,7 @@ use librespot::playback::convert::Converter;
 use songbird::input::reader::MediaSource;
 use std::io::SeekFrom;
 use rubato::{Resampler, FftFixedInOut};
+use std::sync::atomic::Ordering;
 
 pub struct SpotifyPlayer {
     player_config: PlayerConfig,
@@ -74,17 +76,29 @@ impl EmittedSink {
     }
 }
 
-struct ImpliedMixer {}
+struct ImpliedMixer {
+    volume: Arc<AtomicU16>,
+}
+
+impl ImpliedMixer {
+    fn new() -> ImpliedMixer {
+        ImpliedMixer {
+            volume:  Arc::new(AtomicU16::new(std::u16::MAX / 2))
+        }
+    }
+}
 
 impl Mixer for ImpliedMixer {
     fn open(_config: MixerConfig) -> ImpliedMixer {
-        ImpliedMixer {}
+        ImpliedMixer::new()
     }
 
-    fn set_volume(&self, _volume: u16) {}
+    fn set_volume(&self, volume: u16) {
+        self.volume.store(volume, Ordering::Relaxed);
+    }
 
     fn volume(&self) -> u16 {
-        50
+        self.volume.load(Ordering::Relaxed)
     }
 
     fn get_audio_filter(&self) -> Option<Box<dyn AudioFilter + Send>> {
@@ -226,12 +240,12 @@ impl SpotifyPlayer {
         let config = ConnectConfig {
             name: "Aoede".to_string(),
             device_type: DeviceType::AudioDongle,
-            initial_volume: Some(std::u16::MAX / 2),
-            has_volume_ctrl: false,
+            initial_volume: None,
+            has_volume_ctrl: true,
             autoplay: true,
         };
 
-        let mixer = Box::new(ImpliedMixer {});
+        let mixer = Box::new(ImpliedMixer::new());
 
         let cloned_sink = self.emitted_sink.clone();
 

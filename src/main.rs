@@ -25,7 +25,7 @@ use serenity::{
     framework::StandardFramework,
     model::{gateway, gateway::Ready, id, user, voice::VoiceState},
 };
-use songbird::input::Metadata;
+use songbird::tracks::TrackHandle;
 
 struct Handler;
 
@@ -80,6 +80,7 @@ impl EventHandler for Handler {
 
         // Handle Spotify events
         tokio::spawn(async move {
+            let mut track_handle: Option<TrackHandle> = None;
             loop {
                 let channel = player.lock().await.event_channel.clone().unwrap();
                 let mut receiver = channel.lock().await;
@@ -103,6 +104,8 @@ impl EventHandler for Handler {
                             .clone();
 
                         let _ = manager.remove(guild_id).await;
+
+                        track_handle = None;
                     }
 
                     PlayerEvent::Started { .. } => {
@@ -144,24 +147,12 @@ impl EventHandler for Handler {
                                 )),
                                 input::codec::Codec::FloatPcm,
                                 input::Container::Raw,
-                                Some(Metadata {
-                                    track: None,
-                                    title: None,
-                                    artist: None,
-                                    date: None,
-                                    channels: Some(2),
-                                    channel: None,
-                                    start_time: None,
-                                    duration: None,
-                                    sample_rate: Some(44100),
-                                    source_url: None,
-                                    thumbnail: None
-                                }),
+                                None,
                             );
 
                             handler.set_bitrate(songbird::driver::Bitrate::Auto);
 
-                            handler.play_source(source);
+                            track_handle = Some(handler.play_only_source(source));
                         } else {
                             println!("Could not fetch guild by ID.");
                         }
@@ -196,6 +187,12 @@ impl EventHandler for Handler {
                                 )
                                 .await;
                             }
+                        }
+                    }
+
+                    PlayerEvent::VolumeSet {volume} => {
+                        if track_handle.is_some() {
+                            track_handle.as_ref().unwrap().set_volume(volume as f32 / std::u16::MAX as f32).expect("Track handler should be valid");
                         }
                     }
 
