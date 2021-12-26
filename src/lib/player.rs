@@ -138,12 +138,9 @@ impl std::io::Read for EmittedSink {
     fn read(&mut self, buff: &mut [u8]) -> Result<usize, io::Error> {
         let receiver = self.receiver.lock().unwrap();
 
+        #[allow(clippy::needless_range_loop)]
         for i in 0..buff.len() {
-            if let Some(data) = receiver.try_recv().ok() {
-                buff[i] = data;
-            } else {
-                return Ok(i);
-            }
+            buff[i] = receiver.recv().unwrap();
         }
 
         Ok(buff.len())
