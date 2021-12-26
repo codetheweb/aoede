@@ -43,22 +43,33 @@ pub struct EmittedSink {
     pub receiver: Arc<Mutex<Receiver<u8>>>,
     input_buffer: Arc<Mutex<(Vec<f32>, Vec<f32>)>>,
     resampler: Arc<Mutex<FftFixedInOut<f32>>>,
+    resampler_input_frames_needed: usize,
 }
 
 impl EmittedSink {
     fn new() -> EmittedSink {
         let (sender, receiver) = sync_channel::<u8>(64);
 
+        let resampler = FftFixedInOut::<f32>::new(
+            librespot::playback::SAMPLE_RATE as usize,
+            songbird::constants::SAMPLE_RATE_RAW,
+            2048,
+            2,
+        );
+
+        let resampler_input_frames_needed = resampler.nbr_frames_needed();
+
         EmittedSink {
             sender: Arc::new(sender),
             receiver: Arc::new(Mutex::new(receiver)),
-            input_buffer: Arc::new(Mutex::new((Vec::new(), Vec::new()))),
-            resampler: Arc::new(Mutex::new(FftFixedInOut::<f32>::new(
-                librespot::playback::SAMPLE_RATE as usize,
-                songbird::constants::SAMPLE_RATE_RAW,
-                2048,
-                2,
-            ))),
+            input_buffer: Arc::new(Mutex::new(
+                (
+                    Vec::with_capacity(resampler_input_frames_needed),
+                    Vec::with_capacity(resampler_input_frames_needed)
+                )
+            )),
+            resampler: Arc::new(Mutex::new(resampler)),
+            resampler_input_frames_needed,
         }
     }
 }
@@ -91,32 +102,30 @@ impl audio_backend::Sink for EmittedSink {
     }
 
     fn write(&mut self, packet: &AudioPacket, _converter: &mut Converter) -> std::result::Result<(), SinkError> {
+        let frames_needed = self.resampler_input_frames_needed;
         let mut input_buffer = self.input_buffer.lock().unwrap();
+
         for c in packet.samples().unwrap().chunks_exact(2) {
             input_buffer.0.push(c[0] as f32);
             input_buffer.1.push(c[1] as f32);
-        }
+            if input_buffer.0.len() == frames_needed {
+                let mut resampler = self.resampler.lock().unwrap();
+                let resampled = resampler.process(
+                    &[&input_buffer.0[0..frames_needed], &input_buffer.1[0..frames_needed]]
+                ).unwrap();
 
-        let mut resampler = self.resampler.lock().unwrap();
+                input_buffer.0.clear();
+                input_buffer.1.clear();
 
-        while input_buffer.0.len() >= resampler.nbr_frames_needed() {
-            let frames = resampler.nbr_frames_needed();
+                let sender = self.sender.clone();
 
-            let resampled = resampler.process(
-                &[&input_buffer.0[0..frames], &input_buffer.1[0..frames]]
-            ).unwrap();
+                for i in 0..resampled[0].len() {
+                    let mut data = [0u8; 8];
+                    LittleEndian::write_f32_into(&[resampled[0][i], resampled[1][i]], &mut data);
 
-            input_buffer.0.drain(0..frames);
-            input_buffer.1.drain(0..frames);
-
-            let sender = self.sender.clone();
-
-            for i in 0..resampled[0].len() {
-                let mut data = [0u8; 8];
-                LittleEndian::write_f32_into(&[resampled[0][i], resampled[1][i]], &mut data);
-
-                for b in data {
-                    sender.send(b).unwrap();
+                    for b in data {
+                        sender.send(b).unwrap();
+                    }
                 }
             }
         }
@@ -161,6 +170,7 @@ impl Clone for EmittedSink {
             sender: self.sender.clone(),
             input_buffer: self.input_buffer.clone(),
             resampler: self.resampler.clone(),
+            resampler_input_frames_needed: self.resampler_input_frames_needed,
         }
     }
 }
