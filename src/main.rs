@@ -39,7 +39,7 @@ impl EventHandler for Handler {
         println!("Ready!");
         println!("Invite me with https://discord.com/api/oauth2/authorize?client_id={}&permissions=36700160&scope=bot", ready.user.id);
 
-        ctx.set_presence(None, user::OnlineStatus::Online).await;
+        ctx.invisible().await;
     }
 
     async fn cache_ready(&self, ctx: Context, guilds: Vec<id::GuildId>) {
@@ -218,6 +218,7 @@ impl EventHandler for Handler {
         // If user just connected
         if old.clone().is_none() {
             // Enable casting
+            ctx.set_presence(None, user::OnlineStatus::Online).await;
             player.lock().await.enable_connect().await;
             return;
         }
@@ -225,6 +226,7 @@ impl EventHandler for Handler {
         // If user disconnected
         if old.clone().unwrap().channel_id.is_some() && new.channel_id.is_none() {
             // Disable casting
+            ctx.invisible().await;
             player.lock().await.disable_connect().await;
 
             // Disconnect
