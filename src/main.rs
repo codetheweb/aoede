@@ -81,6 +81,7 @@ impl EventHandler for Handler {
         // Handle Spotify events
         tokio::spawn(async move {
             let mut track_handle: Option<TrackHandle> = None;
+            let mut current_volume = 0f32;
             loop {
                 let channel = player.lock().await.event_channel.clone().unwrap();
                 let mut receiver = channel.lock().await;
@@ -153,6 +154,9 @@ impl EventHandler for Handler {
                             handler.set_bitrate(songbird::driver::Bitrate::Auto);
 
                             track_handle = Some(handler.play_only_source(source));
+                            if track_handle.is_some() {
+                                track_handle.as_ref().unwrap().set_volume(current_volume).expect("Track handler should be valid");
+                            }
                         } else {
                             println!("Could not fetch guild by ID.");
                         }
@@ -191,8 +195,9 @@ impl EventHandler for Handler {
                     }
 
                     PlayerEvent::VolumeSet {volume} => {
+                        current_volume = volume as f32 / u16::MAX as f32;
                         if track_handle.is_some() {
-                            track_handle.as_ref().unwrap().set_volume(volume as f32 / std::u16::MAX as f32).expect("Track handler should be valid");
+                            track_handle.as_ref().unwrap().set_volume(current_volume).expect("Track handler should be valid");
                         }
                     }
 
