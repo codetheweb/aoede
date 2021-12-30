@@ -1,4 +1,3 @@
-use librespot::playback::decoder::AudioPacket;
 use librespot::connect::spirc::Spirc;
 use librespot::core::{
     authentication::Credentials,
@@ -8,9 +7,13 @@ use librespot::core::{
 };
 use librespot::playback::{
     audio_backend,
+    audio_backend::SinkError,
     config::Bitrate,
-    config::PlayerConfig,
-    mixer::{AudioFilter, Mixer, MixerConfig},
+    config::{PlayerConfig, VolumeCtrl},
+    decoder::AudioPacket,
+    convert::Converter,
+    mixer::softmixer::SoftMixer,
+    mixer::{Mixer, MixerConfig},
     player::{Player, PlayerEventChannel},
 };
 
@@ -21,16 +24,11 @@ use std::{io, mem};
 use std::sync::{
     mpsc::{sync_channel, Receiver, SyncSender},
     Arc, Mutex,
-    atomic::AtomicU16
 };
 
 use byteorder::{ByteOrder, LittleEndian};
-use librespot::playback::audio_backend::SinkError;
-use librespot::playback::convert::Converter;
 use songbird::input::reader::MediaSource;
-use std::io::SeekFrom;
 use rubato::{Resampler, FftFixedInOut};
-use std::sync::atomic::Ordering;
 
 pub struct SpotifyPlayer {
     player_config: PlayerConfig,
@@ -76,36 +74,6 @@ impl EmittedSink {
     }
 }
 
-struct ImpliedMixer {
-    volume: Arc<AtomicU16>,
-}
-
-impl ImpliedMixer {
-    fn new() -> ImpliedMixer {
-        ImpliedMixer {
-            volume:  Arc::new(AtomicU16::new(std::u16::MAX / 2))
-        }
-    }
-}
-
-impl Mixer for ImpliedMixer {
-    fn open(_config: MixerConfig) -> ImpliedMixer {
-        ImpliedMixer::new()
-    }
-
-    fn set_volume(&self, volume: u16) {
-        self.volume.store(volume, Ordering::Relaxed);
-    }
-
-    fn volume(&self) -> u16 {
-        self.volume.load(Ordering::Relaxed)
-    }
-
-    fn get_audio_filter(&self) -> Option<Box<dyn AudioFilter + Send>> {
-        None
-    }
-}
-
 impl audio_backend::Sink for EmittedSink {
     fn start(&mut self) -> std::result::Result<(), SinkError> {
         Ok(())
@@ -148,7 +116,7 @@ impl audio_backend::Sink for EmittedSink {
     }
 }
 
-impl std::io::Read for EmittedSink {
+impl io::Read for EmittedSink {
     fn read(&mut self, buff: &mut [u8]) -> Result<usize, io::Error> {
         let receiver = self.receiver.lock().unwrap();
 
@@ -161,8 +129,8 @@ impl std::io::Read for EmittedSink {
     }
 }
 
-impl std::io::Seek for EmittedSink {
-    fn seek(&mut self, _pos: SeekFrom) -> std::io::Result<u64> {
+impl io::Seek for EmittedSink {
+    fn seek(&mut self, _pos: io::SeekFrom) -> io::Result<u64> {
         unreachable!()
     }
 }
@@ -216,8 +184,7 @@ impl SpotifyPlayer {
         let session = Session::connect(session_config, credentials, cache)
             .await.expect("Error creating session");
 
-        let mut player_config = PlayerConfig::default();
-        player_config.bitrate = quality;
+        let player_config = PlayerConfig { bitrate: quality, ..Default::default() };
 
         let emitted_sink = EmittedSink::new();
 
@@ -245,14 +212,17 @@ impl SpotifyPlayer {
             autoplay: true,
         };
 
-        let mixer = Box::new(ImpliedMixer::new());
+        let mixer = Box::new(SoftMixer::open(MixerConfig {
+            volume_ctrl: VolumeCtrl::Linear,
+            ..MixerConfig::default()
+        }));
 
         let cloned_sink = self.emitted_sink.clone();
 
         let (player, player_events) = Player::new(
             self.player_config.clone(),
             self.session.clone(),
-            None,
+            mixer.get_audio_filter(),
             move || Box::new(cloned_sink),
         );
 
