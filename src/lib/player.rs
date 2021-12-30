@@ -120,12 +120,28 @@ impl io::Read for EmittedSink {
     fn read(&mut self, buff: &mut [u8]) -> Result<usize, io::Error> {
         let receiver = self.receiver.lock().unwrap();
 
-        #[allow(clippy::needless_range_loop)]
-        for i in 0..buff.len() {
-            buff[i] = receiver.recv().unwrap();
+        // Process everything in 8 byte chunks (one f32 per channel)
+        let chunk_size = 8;
+        let mut bytes_written = 0;
+        while bytes_written + (chunk_size - 1) < buff.len() {
+            if bytes_written == 0 {
+                // We can not return 0 bytes because songbird then things that the track has ended,
+                // therefore block until at least one full chunk can be returned.
+                for byte_offset in 0..chunk_size {
+                    buff[bytes_written + byte_offset] = receiver.recv().unwrap();
+                }
+            } else if let Ok(data) = receiver.try_recv() {
+                buff[bytes_written] = data;
+                for byte_offset in 1..chunk_size {
+                    buff[bytes_written + byte_offset] = receiver.recv().unwrap();
+                }
+            } else {
+                break;
+            }
+            bytes_written += chunk_size;
         }
 
-        Ok(buff.len())
+        Ok(bytes_written)
     }
 }
 

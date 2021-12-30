@@ -25,7 +25,6 @@ use serenity::{
     framework::StandardFramework,
     model::{gateway, gateway::Ready, id, user, voice::VoiceState},
 };
-use songbird::tracks::TrackHandle;
 
 struct Handler;
 
@@ -80,7 +79,6 @@ impl EventHandler for Handler {
 
         // Handle Spotify events
         tokio::spawn(async move {
-            let mut track_handle: Option<TrackHandle> = None;
             loop {
                 let channel = player.lock().await.event_channel.clone().unwrap();
                 let mut receiver = channel.lock().await;
@@ -104,8 +102,6 @@ impl EventHandler for Handler {
                             .clone();
 
                         let _ = manager.remove(guild_id).await;
-
-                        track_handle = None;
                     }
 
                     PlayerEvent::Started { .. } => {
@@ -152,7 +148,7 @@ impl EventHandler for Handler {
 
                             handler.set_bitrate(songbird::driver::Bitrate::Auto);
 
-                            track_handle = Some(handler.play_only_source(source));
+                            handler.play_only_source(source);
                         } else {
                             println!("Could not fetch guild by ID.");
                         }
