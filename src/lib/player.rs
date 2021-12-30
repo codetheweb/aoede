@@ -7,7 +7,7 @@ use librespot::core::{
 };
 use librespot::playback::{
     audio_backend,
-    audio_backend::SinkError,
+    audio_backend::SinkResult,
     config::Bitrate,
     config::{PlayerConfig, VolumeCtrl},
     decoder::AudioPacket,
@@ -39,8 +39,8 @@ pub struct SpotifyPlayer {
 }
 
 pub struct EmittedSink {
-    sender: Arc<SyncSender<u8>>,
-    pub receiver: Arc<Mutex<Receiver<u8>>>,
+    sender: Arc<SyncSender<[f32; 2]>>,
+    pub receiver: Arc<Mutex<Receiver<[f32; 2]>>>,
     input_buffer: Arc<Mutex<(Vec<f32>, Vec<f32>)>>,
     resampler: Arc<Mutex<FftFixedInOut<f32>>>,
     resampler_input_frames_needed: usize,
@@ -48,12 +48,12 @@ pub struct EmittedSink {
 
 impl EmittedSink {
     fn new() -> EmittedSink {
-        let (sender, receiver) = sync_channel::<u8>(2 * mem::size_of::<f32>() * 2048 * 2);
+        let (sender, receiver) = sync_channel::<[f32; 2]>((1024f32 * 1.2).ceil() as usize);
 
         let resampler = FftFixedInOut::<f32>::new(
             librespot::playback::SAMPLE_RATE as usize,
             songbird::constants::SAMPLE_RATE_RAW,
-            2048,
+            1024,
             2,
         );
 
@@ -75,15 +75,15 @@ impl EmittedSink {
 }
 
 impl audio_backend::Sink for EmittedSink {
-    fn start(&mut self) -> std::result::Result<(), SinkError> {
+    fn start(&mut self) -> SinkResult<()> {
         Ok(())
     }
 
-    fn stop(&mut self) -> std::result::Result<(), SinkError> {
+    fn stop(&mut self) -> SinkResult<()> {
         Ok(())
     }
 
-    fn write(&mut self, packet: &AudioPacket, _converter: &mut Converter) -> std::result::Result<(), SinkError> {
+    fn write(&mut self, packet: &AudioPacket, _converter: &mut Converter) -> SinkResult<()> {
         let frames_needed = self.resampler_input_frames_needed;
         let mut input_buffer = self.input_buffer.lock().unwrap();
 
@@ -102,12 +102,7 @@ impl audio_backend::Sink for EmittedSink {
                 let sender = self.sender.clone();
 
                 for i in 0..resampled[0].len() {
-                    let mut data = [0u8; 8];
-                    LittleEndian::write_f32_into(&[resampled[0][i], resampled[1][i]], &mut data);
-
-                    for b in data {
-                        sender.send(b).unwrap();
-                    }
+                    sender.send([resampled[0][i], resampled[1][i]]).unwrap()
                 }
             }
         }
@@ -117,24 +112,20 @@ impl audio_backend::Sink for EmittedSink {
 }
 
 impl io::Read for EmittedSink {
-    fn read(&mut self, buff: &mut [u8]) -> Result<usize, io::Error> {
+    fn read(&mut self, buff: &mut [u8]) -> io::Result<usize> {
         let receiver = self.receiver.lock().unwrap();
 
-        // Process everything in 8 byte chunks (one f32 per channel)
-        let chunk_size = 8;
+        let chunk_size = mem::size_of::<f32>() * 2;
         let mut bytes_written = 0;
         while bytes_written + (chunk_size - 1) < buff.len() {
             if bytes_written == 0 {
                 // We can not return 0 bytes because songbird then things that the track has ended,
-                // therefore block until at least one full chunk can be returned.
-                for byte_offset in 0..chunk_size {
-                    buff[bytes_written + byte_offset] = receiver.recv().unwrap();
-                }
+                // therefore block until at least one stereo data set can be returned.
+
+                let chunk = receiver.recv().unwrap();
+                LittleEndian::write_f32_into(&chunk, &mut buff[bytes_written..(bytes_written + chunk_size)]);
             } else if let Ok(data) = receiver.try_recv() {
-                buff[bytes_written] = data;
-                for byte_offset in 1..chunk_size {
-                    buff[bytes_written + byte_offset] = receiver.recv().unwrap();
-                }
+                LittleEndian::write_f32_into(&data, &mut buff[bytes_written..(bytes_written + chunk_size)]);
             } else {
                 break;
             }
