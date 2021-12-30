@@ -10,8 +10,8 @@ use librespot::playback::{
     audio_backend::SinkResult,
     config::Bitrate,
     config::{PlayerConfig, VolumeCtrl},
-    decoder::AudioPacket,
     convert::Converter,
+    decoder::AudioPacket,
     mixer::softmixer::SoftMixer,
     mixer::{Mixer, MixerConfig},
     player::{Player, PlayerEventChannel},
@@ -20,15 +20,15 @@ use librespot::playback::{
 use serenity::prelude::TypeMapKey;
 
 use std::clone::Clone;
-use std::{io, mem};
 use std::sync::{
     mpsc::{sync_channel, Receiver, SyncSender},
     Arc, Mutex,
 };
+use std::{io, mem};
 
 use byteorder::{ByteOrder, LittleEndian};
+use rubato::{FftFixedInOut, Resampler};
 use songbird::input::reader::MediaSource;
-use rubato::{Resampler, FftFixedInOut};
 
 pub struct SpotifyPlayer {
     player_config: PlayerConfig,
@@ -62,12 +62,10 @@ impl EmittedSink {
         EmittedSink {
             sender: Arc::new(sender),
             receiver: Arc::new(Mutex::new(receiver)),
-            input_buffer: Arc::new(Mutex::new(
-                (
-                    Vec::with_capacity(resampler_input_frames_needed),
-                    Vec::with_capacity(resampler_input_frames_needed)
-                )
-            )),
+            input_buffer: Arc::new(Mutex::new((
+                Vec::with_capacity(resampler_input_frames_needed),
+                Vec::with_capacity(resampler_input_frames_needed),
+            ))),
             resampler: Arc::new(Mutex::new(resampler)),
             resampler_input_frames_needed,
         }
@@ -92,9 +90,12 @@ impl audio_backend::Sink for EmittedSink {
             input_buffer.1.push(c[1] as f32);
             if input_buffer.0.len() == frames_needed {
                 let mut resampler = self.resampler.lock().unwrap();
-                let resampled = resampler.process(
-                    &[&input_buffer.0[0..frames_needed], &input_buffer.1[0..frames_needed]]
-                ).unwrap();
+                let resampled = resampler
+                    .process(&[
+                        &input_buffer.0[0..frames_needed],
+                        &input_buffer.1[0..frames_needed],
+                    ])
+                    .unwrap();
 
                 input_buffer.0.clear();
                 input_buffer.1.clear();
@@ -123,9 +124,15 @@ impl io::Read for EmittedSink {
                 // therefore block until at least one stereo data set can be returned.
 
                 let chunk = receiver.recv().unwrap();
-                LittleEndian::write_f32_into(&chunk, &mut buff[bytes_written..(bytes_written + chunk_size)]);
+                LittleEndian::write_f32_into(
+                    &chunk,
+                    &mut buff[bytes_written..(bytes_written + chunk_size)],
+                );
             } else if let Ok(data) = receiver.try_recv() {
-                LittleEndian::write_f32_into(&data, &mut buff[bytes_written..(bytes_written + chunk_size)]);
+                LittleEndian::write_f32_into(
+                    &data,
+                    &mut buff[bytes_written..(bytes_written + chunk_size)],
+                );
             } else {
                 break;
             }
@@ -189,9 +196,13 @@ impl SpotifyPlayer {
         let cache = Cache::new(cache_dir.clone(), cache_dir, Some(cache_limit)).ok();
 
         let session = Session::connect(session_config, credentials, cache)
-            .await.expect("Error creating session");
+            .await
+            .expect("Error creating session");
 
-        let player_config = PlayerConfig { bitrate: quality, ..Default::default() };
+        let player_config = PlayerConfig {
+            bitrate: quality,
+            ..Default::default()
+        };
 
         let emitted_sink = EmittedSink::new();
 
