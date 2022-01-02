@@ -114,29 +114,38 @@ impl audio_backend::Sink for EmittedSink {
 
 impl io::Read for EmittedSink {
     fn read(&mut self, buff: &mut [u8]) -> io::Result<usize> {
+        let sample_size = mem::size_of::<f32>() * 2;
+
+        if buff.len() < sample_size {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "EmittedSink does not support read buffer too small to guarantee \
+                holding one audio sample (8 bytes)",
+            ));
+        }
+
         let receiver = self.receiver.lock().unwrap();
 
-        let chunk_size = mem::size_of::<f32>() * 2;
         let mut bytes_written = 0;
-        while bytes_written + (chunk_size - 1) < buff.len() {
+        while bytes_written + (sample_size - 1) < buff.len() {
             if bytes_written == 0 {
-                // We can not return 0 bytes because songbird then things that the track has ended,
+                // We can not return 0 bytes because songbird then thinks that the track has ended,
                 // therefore block until at least one stereo data set can be returned.
 
-                let chunk = receiver.recv().unwrap();
+                let sample = receiver.recv().unwrap();
                 LittleEndian::write_f32_into(
-                    &chunk,
-                    &mut buff[bytes_written..(bytes_written + chunk_size)],
+                    &sample,
+                    &mut buff[bytes_written..(bytes_written + sample_size)],
                 );
             } else if let Ok(data) = receiver.try_recv() {
                 LittleEndian::write_f32_into(
                     &data,
-                    &mut buff[bytes_written..(bytes_written + chunk_size)],
+                    &mut buff[bytes_written..(bytes_written + sample_size)],
                 );
             } else {
                 break;
             }
-            bytes_written += chunk_size;
+            bytes_written += sample_size;
         }
 
         Ok(bytes_written)
