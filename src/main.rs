@@ -146,9 +146,9 @@ impl EventHandler for Handler {
                                 None,
                             );
 
-                            handler.set_bitrate(songbird::Bitrate::Auto);
+                            handler.set_bitrate(songbird::driver::Bitrate::Auto);
 
-                            handler.play_source(source);
+                            handler.play_only_source(source);
                         } else {
                             println!("Could not fetch guild by ID.");
                         }
