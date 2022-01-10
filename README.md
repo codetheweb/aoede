@@ -35,6 +35,22 @@ services:
       - DISCORD_USER_ID= # Discord user ID of the user you want Aoede to follow
 ```
 
+**Docker**:
+```Dockerfile
+FROM codetheweb/aoede
+
+WORKDIR /app
+
+COPY ubuntu-latest-aoede .
+
+ENV DISCORD_TOKEN=
+ENV SPOTIFY_USERNAME=
+ENV SPOTIFY_PASSWORD=
+ENV DISCORD_USER_ID=
+
+CMD ["./ubuntu-latest-aoede"]
+```
+
 **Prebuilt Binaries**:
 
 Prebuilt binaries are available on the [releases page](https://github.com/codetheweb/aoede/releases). Download the binary for your platform, then inside a terminal session:
