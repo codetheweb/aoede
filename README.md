@@ -38,14 +38,14 @@ services:
 **Docker**:
 ```env
 # .env
-ENV DISCORD_TOKEN=
-ENV SPOTIFY_USERNAME=
-ENV SPOTIFY_PASSWORD=
-ENV DISCORD_USER_ID=
+DISCORD_TOKEN=
+SPOTIFY_USERNAME=
+SPOTIFY_PASSWORD=
+DISCORD_USER_ID=
 ```
 
 ```bash
-docker run -d --env-file .env codetheweb/aoede
+docker run --rm -d --env-file .env codetheweb/aoede
 ```
 
 **Prebuilt Binaries**:
