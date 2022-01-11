@@ -36,19 +36,16 @@ services:
 ```
 
 **Docker**:
-```Dockerfile
-FROM codetheweb/aoede
-
-WORKDIR /app
-
-COPY ubuntu-latest-aoede .
-
+```env
+# .env
 ENV DISCORD_TOKEN=
 ENV SPOTIFY_USERNAME=
 ENV SPOTIFY_PASSWORD=
 ENV DISCORD_USER_ID=
+```
 
-CMD ["./ubuntu-latest-aoede"]
+```bash
+docker run -d --env-file .env codetheweb/aoede
 ```
 
 **Prebuilt Binaries**:
