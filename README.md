@@ -35,6 +35,19 @@ services:
       - DISCORD_USER_ID= # Discord user ID of the user you want Aoede to follow
 ```
 
+**Docker**:
+```env
+# .env
+DISCORD_TOKEN=
+SPOTIFY_USERNAME=
+SPOTIFY_PASSWORD=
+DISCORD_USER_ID=
+```
+
+```bash
+docker run --rm -d --env-file .env codetheweb/aoede
+```
+
 **Prebuilt Binaries**:
 
 Prebuilt binaries are available on the [releases page](https://github.com/codetheweb/aoede/releases). Download the binary for your platform, then inside a terminal session:
