@@ -1,4 +1,5 @@
 use std::env;
+use std::process::exit;
 
 use lib::config::Config;
 use songbird::input;
@@ -268,7 +269,15 @@ async fn main() {
 
     let framework = StandardFramework::new();
 
-    let config = Config::new().expect("Couldn't read config");
+    let config = match Config::new() {
+        Ok(config) => config,
+        Err(error) =>  {
+            // sort of dirty but formatting works fine
+            let errorstring = error.to_string().split("`").collect::<Vec<&str>>().get(1).unwrap().to_uppercase();
+            println!("Couldn't read config!\nMissing field: 'AOEDE_{}'", errorstring);
+            exit(1)
+        },
+    };
 
     let mut cache_dir = None;
 
