@@ -1,5 +1,8 @@
-use figment::{Figment, providers::{Env, Toml, Format}, Error};
-use serde::{Deserialize};
+use figment::{
+    providers::{Env, Format, Toml},
+    Error, Figment,
+};
+use serde::Deserialize;
 use serenity::model::id;
 
 #[derive(Deserialize, Clone)]
@@ -11,11 +14,11 @@ pub struct Config {
 }
 
 impl Config {
-  pub fn new() -> Result<Self, Error> {
-    let config: Config = Figment::new()
-    .merge(Toml::file("config.toml"))
-    .merge(Env::prefixed("AOEDE_").map(|v| v.to_string().to_lowercase().into()))
-    .extract()?;
-    Ok(config)
-  }
+    pub fn new() -> Result<Self, Error> {
+        let config: Config = Figment::new()
+            .merge(Toml::file("config.toml"))
+            .merge(Env::prefixed("AOEDE_").map(|v| v.to_string().to_lowercase().into()))
+            .extract()?;
+        Ok(config)
+    }
 }

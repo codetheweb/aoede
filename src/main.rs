@@ -16,6 +16,7 @@ use librespot::playback::player::PlayerEvent;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
+use figment::error::Kind::MissingField;
 
 use serenity::client::Context;
 
@@ -271,12 +272,16 @@ async fn main() {
 
     let config = match Config::new() {
         Ok(config) => config,
-        Err(error) =>  {
-            // sort of dirty but formatting works fine
-            let errorstring = error.to_string().split("`").collect::<Vec<&str>>().get(1).unwrap().to_uppercase();
-            println!("Couldn't read config!\nMissing field: 'AOEDE_{}'", errorstring);
+        Err(error) => {
+            println!("Couldn't read config");
+            if let MissingField(f) = error.kind {
+                println!("Missing field: 'AOEDE_{}'", f.to_uppercase());
+            } else {
+                println!("Error: {:?}", error);
+                exit(2)
+            }
             exit(1)
-        },
+        }
     };
 
     let mut cache_dir = None;
