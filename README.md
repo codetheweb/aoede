@@ -4,7 +4,7 @@
 
 Aoede is a Discord music bot that **directly** streams from **Spotify to Discord**. The only interface is Spotify itself.
 
-**Note**: a Spotify Premium account is currently required. This is a limitation of librespot, the Spotify library Aoede uses.
+**Note**: a Spotify Premium account is currently required. This is a limitation of librespot, the Spotify library Aoede uses. Facebook logins [are not supported](https://github.com/librespot-org/librespot/discussions/635).
 
 ![Demo](https://raw.githubusercontent.com/codetheweb/aoede/main/.github/demo.gif)
 
@@ -33,6 +33,19 @@ services:
       - AOEDE_SPOTIFY_USERNAME=
       - AOEDE_SPOTIFY_PASSWORD=
       - AOEDE_DISCORD_USER_ID= # Discord user ID of the user you want Aoede to follow
+```
+
+**Docker**:
+```env
+# .env
+DISCORD_TOKEN=
+SPOTIFY_USERNAME=
+SPOTIFY_PASSWORD=
+DISCORD_USER_ID=
+```
+
+```bash
+docker run --rm -d --env-file .env codetheweb/aoede
 ```
 
 **Prebuilt Binaries**:
