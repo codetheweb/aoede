@@ -1,5 +1,6 @@
 use std::env;
 
+use lib::config::Config;
 use songbird::input;
 use songbird::SerenityInit;
 
@@ -7,7 +8,6 @@ mod lib {
     pub mod config;
     pub mod player;
 }
-use lib::config::ConfigWrapper;
 use lib::player::{SpotifyPlayer, SpotifyPlayerKey};
 use librespot::core::mercury::MercuryError;
 use librespot::playback::config::Bitrate;
@@ -31,7 +31,7 @@ struct Handler;
 
 pub struct ConfigKey;
 impl TypeMapKey for ConfigKey {
-    type Value = ConfigWrapper;
+    type Value = Config;
 }
 
 #[async_trait]
@@ -65,7 +65,7 @@ impl EventHandler for Handler {
 
         let channel_id = guild
             .voice_states
-            .get(&config.config.discord_user_id)
+            .get(&config.discord_user_id)
             .and_then(|voice_state| voice_state.channel_id);
         drop(guild);
 
@@ -117,7 +117,7 @@ impl EventHandler for Handler {
 
                         let channel_id = match guild
                             .voice_states
-                            .get(&config.config.discord_user_id)
+                            .get(&config.discord_user_id)
                             .and_then(|voice_state| voice_state.channel_id)
                         {
                             Some(channel_id) => channel_id,
@@ -202,7 +202,7 @@ impl EventHandler for Handler {
 
         let config = data.get::<ConfigKey>().unwrap();
 
-        if new.user_id.to_string() != config.config.discord_user_id.to_string() {
+        if new.user_id.to_string() != config.discord_user_id.to_string() {
             return;
         }
 
@@ -268,12 +268,7 @@ async fn main() {
 
     let framework = StandardFramework::new();
 
-    // Configure the client with your Discord bot token in the environment.
-    // load_config_value!("DISCORD_TOKEN", discord_token, token,);
-    // load_config_value!("SPOTIFY_USERNAME", spotify_username, username,);
-    // load_config_value!("SPOTIFY_PASSWORD", spotify_password, password,);
-    // load_config_value!("DISCORD_USER_ID", discord_user_id, user_id,);
-    let config = ConfigWrapper::new();
+    let config = Config::new().expect("Couldn't read config");
 
     let mut cache_dir = None;
 
@@ -283,15 +278,15 @@ async fn main() {
 
     let player = Arc::new(Mutex::new(
         SpotifyPlayer::new(
-            config.config.spotify_username.clone(),
-            config.config.spotify_password.clone(),
+            config.spotify_username.clone(),
+            config.spotify_password.clone(),
             Bitrate::Bitrate320,
             cache_dir,
         )
         .await,
     ));
 
-    let mut client = Client::builder(&config.config.discord_token)
+    let mut client = Client::builder(&config.discord_token)
         .event_handler(Handler)
         .framework(framework)
         .type_map_insert::<SpotifyPlayerKey>(player)

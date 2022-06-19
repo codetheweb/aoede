@@ -17,6 +17,7 @@ byteorder = "1.4.3"
 samplerate = "0.2.4"
 serde = "1.0"
 envy = "0.4"
+figment = { version = "0.10", features = ["toml", "env"] }
 
 [dependencies.serenity]
 version = "0.10"
