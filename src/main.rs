@@ -277,7 +277,7 @@ async fn main() {
         Err(error) => {
             println!("Couldn't read config");
             if let MissingField(f) = error.kind {
-                println!("Missing field: 'AOEDE_{}'", f.to_uppercase());
+                println!("Missing field: '{}'", f.to_uppercase());
             } else {
                 println!("Error: {:?}", error);
                 exit(2)
