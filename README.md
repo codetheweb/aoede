@@ -29,10 +29,10 @@ services:
     volumes:
       - ./aoede:/data
     environment:
-      - AOEDE_DISCORD_TOKEN=
-      - AOEDE_SPOTIFY_USERNAME=
-      - AOEDE_SPOTIFY_PASSWORD=
-      - AOEDE_DISCORD_USER_ID= # Discord user ID of the user you want Aoede to follow
+      - DISCORD_TOKEN=
+      - SPOTIFY_USERNAME=
+      - SPOTIFY_PASSWORD=
+      - DISCORD_USER_ID= # Discord user ID of the user you want Aoede to follow
 ```
 
 **Docker**:
@@ -53,10 +53,10 @@ docker run --rm -d --env-file .env codetheweb/aoede
 Prebuilt binaries are available on the [releases page](https://github.com/codetheweb/aoede/releases). Download the binary for your platform, then inside a terminal session:
 
 1. There are two options to make configuration values available to Aoede:
-	1. Rename the `config.sample.toml` file to `config.toml` and update the config values
+	1. Copy the `config.sample.toml` file to `config.toml` and update as necessary.
 	2. Use environment variables (see the Docker Compose section above):
-		- On Windows, you can use `setx AOEDE_DISCORD_TOKEN my-token`
-		- On Linux / macOS, you can use `export AOEDE_DISCORD_TOKEN=my-token`
+		- On Windows, you can use `setx DISCORD_TOKEN my-token`
+		- On Linux / macOS, you can use `export DISCORD_TOKEN=my-token`
 2. Run the binary:
 	- For Linux / macOS, `./platform-latest-aoede` after navigating to the correct directory
 	- For Windows, execute `windows-latest-aoede.exe` after navigating to the correct directory

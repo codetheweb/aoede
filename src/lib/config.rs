@@ -17,7 +17,7 @@ impl Config {
     pub fn new() -> Result<Self, Error> {
         let config: Config = Figment::new()
             .merge(Toml::file("config.toml"))
-            .merge(Env::prefixed("AOEDE_").map(|v| v.to_string().to_lowercase().into()))
+            .merge(Env::raw().map(|v| v.to_string().to_lowercase().into()))
             .extract()?;
         Ok(config)
     }
