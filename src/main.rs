@@ -1,11 +1,13 @@
 use std::env;
+use std::process::exit;
 
+use lib::config::Config;
 use songbird::input;
 use songbird::SerenityInit;
 
 mod lib {
+    pub mod config;
     pub mod player;
-    // pub mod forward_mpsc;
 }
 use lib::player::{SpotifyPlayer, SpotifyPlayerKey};
 use librespot::core::mercury::MercuryError;
@@ -14,6 +16,7 @@ use librespot::playback::player::PlayerEvent;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
+use figment::error::Kind::MissingField;
 
 use serenity::client::Context;
 
@@ -28,9 +31,9 @@ use serenity::{
 
 struct Handler;
 
-pub struct UserIdKey;
-impl TypeMapKey for UserIdKey {
-    type Value = id::UserId;
+pub struct ConfigKey;
+impl TypeMapKey for ConfigKey {
+    type Value = Config;
 }
 
 #[async_trait]
@@ -53,9 +56,7 @@ impl EventHandler for Handler {
         let data = ctx.data.read().await;
 
         let player = data.get::<SpotifyPlayerKey>().unwrap().clone();
-        let user_id = *data
-            .get::<UserIdKey>()
-            .expect("User ID placed in at initialisation.");
+        let config = data.get::<ConfigKey>().unwrap().clone();
 
         // Handle case when user is in VC when bot starts
         let guild = ctx
@@ -66,7 +67,7 @@ impl EventHandler for Handler {
 
         let channel_id = guild
             .voice_states
-            .get(&user_id)
+            .get(&config.discord_user_id)
             .and_then(|voice_state| voice_state.channel_id);
         drop(guild);
 
@@ -118,7 +119,7 @@ impl EventHandler for Handler {
 
                         let channel_id = match guild
                             .voice_states
-                            .get(&user_id)
+                            .get(&config.discord_user_id)
                             .and_then(|voice_state| voice_state.channel_id)
                         {
                             Some(channel_id) => channel_id,
@@ -201,9 +202,9 @@ impl EventHandler for Handler {
     ) {
         let data = ctx.data.read().await;
 
-        let user_id = data.get::<UserIdKey>();
+        let config = data.get::<ConfigKey>().unwrap();
 
-        if new.user_id.to_string() != user_id.unwrap().to_string() {
+        if new.user_id.to_string() != config.discord_user_id.to_string() {
             return;
         }
 
@@ -269,16 +270,21 @@ impl EventHandler for Handler {
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    // Configure the client with your Discord bot token in the environment.
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
-
     let framework = StandardFramework::new();
-    let username =
-        env::var("SPOTIFY_USERNAME").expect("Expected a Spotify username in the environment");
-    let password =
-        env::var("SPOTIFY_PASSWORD").expect("Expected a Spotify password in the environment");
-    let user_id =
-        env::var("DISCORD_USER_ID").expect("Expected a Discord user ID in the environment");
+
+    let config = match Config::new() {
+        Ok(config) => config,
+        Err(error) => {
+            println!("Couldn't read config");
+            if let MissingField(f) = error.kind {
+                println!("Missing field: '{}'", f.to_uppercase());
+            } else {
+                println!("Error: {:?}", error);
+                exit(2)
+            }
+            exit(1)
+        }
+    };
 
     let mut cache_dir = None;
 
@@ -287,14 +293,20 @@ async fn main() {
     }
 
     let player = Arc::new(Mutex::new(
-        SpotifyPlayer::new(username, password, Bitrate::Bitrate320, cache_dir).await,
+        SpotifyPlayer::new(
+            config.spotify_username.clone(),
+            config.spotify_password.clone(),
+            Bitrate::Bitrate320,
+            cache_dir,
+        )
+        .await,
     ));
 
-    let mut client = Client::builder(&token)
+    let mut client = Client::builder(&config.discord_token)
         .event_handler(Handler)
         .framework(framework)
         .type_map_insert::<SpotifyPlayerKey>(player)
-        .type_map_insert::<UserIdKey>(id::UserId::from(user_id.parse::<u64>().unwrap()))
+        .type_map_insert::<ConfigKey>(config)
         .register_songbird()
         .await
         .expect("Err creating client");
