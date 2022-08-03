@@ -3,7 +3,6 @@ use std::process::exit;
 
 use lib::config::Config;
 use songbird::input;
-use songbird::SerenityInit;
 
 mod lib {
     pub mod config;
@@ -18,13 +17,13 @@ use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
 use figment::error::Kind::MissingField;
 
-use serenity::client::Context;
+use serenity::Client;
 
 use serenity::prelude::TypeMapKey;
 
 use serenity::{
     async_trait,
-    client::{Client, EventHandler},
+    client::{EventHandler, Context},
     framework::StandardFramework,
     model::{gateway, gateway::Ready, id, user, voice::VoiceState},
 };
@@ -302,7 +301,7 @@ async fn main() {
         .await,
     ));
 
-    let mut client = Client::builder(&config.discord_token)
+    let mut client = Client::builder(&config.discord_token, gateway::GatewayIntents::default())
         .event_handler(Handler)
         .framework(framework)
         .type_map_insert::<SpotifyPlayerKey>(player)

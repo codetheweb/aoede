@@ -84,7 +84,7 @@ impl audio_backend::Sink for EmittedSink {
         Ok(())
     }
 
-    fn write(&mut self, packet: &AudioPacket, _converter: &mut Converter) -> SinkResult<()> {
+    fn write(&mut self, packet: AudioPacket, _converter: &mut Converter) -> SinkResult<()> {
         let frames_needed = self.resampler_input_frames_needed;
         let mut input_buffer = self.input_buffer.lock().unwrap();
 
@@ -205,9 +205,9 @@ impl SpotifyPlayer {
         cache_limit = cache_limit.pow(9);
         cache_limit *= 4;
 
-        let cache = Cache::new(cache_dir.clone(), cache_dir, Some(cache_limit)).ok();
+        let cache = Cache::new(cache_dir.clone(), cache_dir.clone(), cache_dir, Some(cache_limit)).ok();
 
-        let session = Session::connect(session_config, credentials, cache)
+        let (session, _) = Session::connect(session_config, credentials, cache, false)
             .await
             .expect("Error creating session");
 
@@ -220,7 +220,7 @@ impl SpotifyPlayer {
 
         let cloned_sink = emitted_sink.clone();
 
-        let (_player, rx) = Player::new(player_config.clone(), session.clone(), None, move || {
+        let (_player, rx) = Player::new(player_config.clone(), session.clone(), Box::new(None), move || {
             Box::new(cloned_sink)
         });
 
