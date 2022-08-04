@@ -7,9 +7,13 @@ use serenity::model::id;
 
 #[derive(Deserialize, Clone)]
 pub struct Config {
+    #[serde(rename = "DISCORD_TOKEN")]
     pub discord_token: String,
+    #[serde(rename = "SPOTIFY_USERNAME")]
     pub spotify_username: String,
+    #[serde(rename = "SPOTIFY_PASSWORD")]
     pub spotify_password: String,
+    #[serde(rename = "DISCORD_USER_ID")]
     pub discord_user_id: id::UserId,
 }
 
