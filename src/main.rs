@@ -2,7 +2,7 @@ use std::env;
 use std::process::exit;
 
 use lib::config::Config;
-use songbird::input;
+use songbird::{input, SerenityInit};
 
 mod lib {
     pub mod config;
@@ -61,7 +61,6 @@ impl EventHandler for Handler {
         let guild = ctx
             .cache
             .guild(guild_id)
-            .await
             .expect("Could not find guild in cache.");
 
         let channel_id = guild
@@ -113,7 +112,6 @@ impl EventHandler for Handler {
                         let guild = c
                             .cache
                             .guild(guild_id)
-                            .await
                             .expect("Could not find guild in cache.");
 
                         let channel_id = match guild
@@ -195,7 +193,6 @@ impl EventHandler for Handler {
     async fn voice_state_update(
         &self,
         ctx: Context,
-        _: Option<id::GuildId>,
         old: Option<VoiceState>,
         new: VoiceState,
     ) {
@@ -211,8 +208,7 @@ impl EventHandler for Handler {
 
         let guild = ctx
             .cache
-            .guild(ctx.cache.guilds().await.first().unwrap())
-            .await
+            .guild(ctx.cache.guilds().first().unwrap())
             .unwrap();
 
         // If user just connected
@@ -242,7 +238,7 @@ impl EventHandler for Handler {
 
         // If user moved channels
         if old.unwrap().channel_id.unwrap() != new.channel_id.unwrap() {
-            let bot_id = ctx.cache.current_user_id().await;
+            let bot_id = ctx.cache.current_user_id();
 
             let bot_channel = guild
                 .voice_states
@@ -255,7 +251,7 @@ impl EventHandler for Handler {
                     .expect("Songbird Voice client placed in at initialisation.")
                     .clone();
 
-                if let Some(guild_id) = ctx.cache.guilds().await.first() {
+                if let Some(guild_id) = ctx.cache.guilds().first() {
                     let _handler = manager.join(*guild_id, new.channel_id.unwrap()).await;
                 }
             }
