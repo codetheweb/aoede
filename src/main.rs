@@ -65,7 +65,7 @@ impl EventHandler for Handler {
 
         let channel_id = guild
             .voice_states
-            .get(&config.discord_user_id)
+            .get(&config.discord_user_id.into())
             .and_then(|voice_state| voice_state.channel_id);
         drop(guild);
 
@@ -116,7 +116,7 @@ impl EventHandler for Handler {
 
                         let channel_id = match guild
                             .voice_states
-                            .get(&config.discord_user_id)
+                            .get(&config.discord_user_id.into())
                             .and_then(|voice_state| voice_state.channel_id)
                         {
                             Some(channel_id) => channel_id,

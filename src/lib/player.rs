@@ -36,6 +36,7 @@ pub struct SpotifyPlayer {
     pub session: Session,
     pub spirc: Option<Box<Spirc>>,
     pub event_channel: Option<Arc<tokio::sync::Mutex<PlayerEventChannel>>>,
+    mixer: Box<SoftMixer>,
 }
 
 pub struct EmittedSink {
@@ -166,7 +167,7 @@ impl MediaSource for EmittedSink {
         false
     }
 
-    fn len(&self) -> Option<u64> {
+    fn byte_len(&self) -> Option<u64> {
         None
     }
 }
@@ -220,7 +221,12 @@ impl SpotifyPlayer {
 
         let cloned_sink = emitted_sink.clone();
 
-        let (_player, rx) = Player::new(player_config.clone(), session.clone(), Box::new(None), move || {
+        let mixer = Box::new(SoftMixer::open(MixerConfig {
+            volume_ctrl: VolumeCtrl::Linear,
+            ..MixerConfig::default()
+        }));
+
+        let (_player, rx) = Player::new(player_config.clone(), session.clone(), mixer.get_soft_volume(), move || {
             Box::new(cloned_sink)
         });
 
@@ -230,6 +236,7 @@ impl SpotifyPlayer {
             session,
             spirc: None,
             event_channel: Some(Arc::new(tokio::sync::Mutex::new(rx))),
+            mixer
         }
     }
 
@@ -242,23 +249,19 @@ impl SpotifyPlayer {
             autoplay: true,
         };
 
-        let mixer = Box::new(SoftMixer::open(MixerConfig {
-            volume_ctrl: VolumeCtrl::Linear,
-            ..MixerConfig::default()
-        }));
 
         let cloned_sink = self.emitted_sink.clone();
 
         let (player, player_events) = Player::new(
             self.player_config.clone(),
             self.session.clone(),
-            mixer.get_audio_filter(),
+            self.mixer.get_soft_volume(),
             move || Box::new(cloned_sink),
         );
 
         let cloned_session = self.session.clone();
 
-        let (spirc, task) = Spirc::new(config, cloned_session, player, mixer);
+        let (spirc, task) = Spirc::new(config, cloned_session, player, self.mixer.clone());
 
         let handle = tokio::runtime::Handle::current();
         handle.spawn(async {
