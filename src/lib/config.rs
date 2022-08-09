@@ -2,15 +2,14 @@ use figment::{
     providers::{Env, Format, Toml},
     Error, Figment,
 };
-use serde::Deserialize;
-use serenity::model::id;
+use serde::{Deserialize};
 
 #[derive(Deserialize, Clone)]
 pub struct Config {
     pub discord_token: String,
     pub spotify_username: String,
     pub spotify_password: String,
-    pub discord_user_id: id::UserId,
+    pub discord_user_id: u64,
 }
 
 impl Config {
