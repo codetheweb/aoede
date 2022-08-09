@@ -17,7 +17,10 @@ Aoede is a Discord music bot that **directly** streams from **Spotify to Discord
 
 (Images are available for x86 and arm64.)
 
-**Docker Compose (recommended)**:
+### Note:
+⚠️ Aoede only supports bot tokens. Providing a user token won't work.
+
+### Docker Compose (recommended):
 
 ```yaml
 version: '3.4'
@@ -32,10 +35,10 @@ services:
       - DISCORD_TOKEN=
       - SPOTIFY_USERNAME=
       - SPOTIFY_PASSWORD=
-      - DISCORD_USER_ID= # Discord user ID of the user you want Aoede to follow
+      - DISCORD_USER_ID=     # Discord user ID of the user you want Aoede to follow
 ```
 
-**Docker**:
+### Docker:
 ```env
 # .env
 DISCORD_TOKEN=
@@ -48,7 +51,7 @@ DISCORD_USER_ID=
 docker run --rm -d --env-file .env codetheweb/aoede
 ```
 
-**Prebuilt Binaries**:
+### Prebuilt Binaries:
 
 Prebuilt binaries are available on the [releases page](https://github.com/codetheweb/aoede/releases). Download the binary for your platform, then inside a terminal session:
 
@@ -61,7 +64,7 @@ Prebuilt binaries are available on the [releases page](https://github.com/codeth
 	- For Linux / macOS, `./platform-latest-aoede` after navigating to the correct directory
 	- For Windows, execute `windows-latest-aoede.exe` after navigating to the correct directory
 
-**Building from source**:
+### Building from source:
 
 Requirements:
 
