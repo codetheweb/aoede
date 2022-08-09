@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serenity::model::id;
 
 #[derive(Deserialize, Clone)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct Config {
     pub discord_token: String,
     pub spotify_username: String,
