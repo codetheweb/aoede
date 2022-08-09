@@ -51,7 +51,7 @@ impl EmittedSink {
     fn new() -> EmittedSink {
         // By setting the sync_channel bound to at least the output frame size of one resampling
         // step (1120 for a chunk size of 1024 and our frequency settings) the number of
-        // synchronisations needed between EmittedSink::write and EmittedSink::read can be reduced.
+        // synchronizations needed between EmittedSink::write and EmittedSink::read can be reduced.
         let (sender, receiver) = sync_channel::<[f32; 2]>(1120);
 
         let resampler = FftFixedInOut::<f32>::new(

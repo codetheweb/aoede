@@ -97,7 +97,7 @@ impl EventHandler for Handler {
 
                         let manager = songbird::get(&c)
                             .await
-                            .expect("Songbird Voice client placed in at initialisation.")
+                            .expect("Songbird Voice client placed in at initialization.")
                             .clone();
 
                         let _ = manager.remove(guild_id).await;
@@ -106,7 +106,7 @@ impl EventHandler for Handler {
                     PlayerEvent::Started { .. } => {
                         let manager = songbird::get(&c)
                             .await
-                            .expect("Songbird Voice client placed in at initialisation.")
+                            .expect("Songbird Voice client placed in at initialization.")
                             .clone();
 
                         let guild = c
@@ -228,7 +228,7 @@ impl EventHandler for Handler {
             // Disconnect
             let manager = songbird::get(&ctx)
                 .await
-                .expect("Songbird Voice client placed in at initialisation.")
+                .expect("Songbird Voice client placed in at initialization.")
                 .clone();
 
             let _handler = manager.remove(guild.id).await;
@@ -248,7 +248,7 @@ impl EventHandler for Handler {
             if Option::is_some(&bot_channel) {
                 let manager = songbird::get(&ctx)
                     .await
-                    .expect("Songbird Voice client placed in at initialisation.")
+                    .expect("Songbird Voice client placed in at initialization.")
                     .clone();
 
                 if let Some(guild_id) = ctx.cache.guilds().first() {
@@ -297,7 +297,7 @@ async fn main() {
         .await,
     ));
 
-    let mut client = Client::builder(&config.discord_token, gateway::GatewayIntents::default())
+    let mut client = Client::builder(&config.discord_token, gateway::GatewayIntents::GUILDS)
         .event_handler(Handler)
         .framework(framework)
         .type_map_insert::<SpotifyPlayerKey>(player)
