@@ -45,8 +45,8 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
       - name: Update Docker Hub description
-        uses: peter-evans/dockerhub-description@v2.1.0
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-          DOCKERHUB_REPOSITORY: codetheweb/aoede
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          repository: codetheweb/aoede
