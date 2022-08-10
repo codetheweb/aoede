@@ -297,7 +297,7 @@ async fn main() {
         .await,
     ));
 
-    let mut client = Client::builder(&config.discord_token, gateway::GatewayIntents::GUILDS)
+    let mut client = Client::builder(&config.discord_token, gateway::GatewayIntents::non_privileged())
         .event_handler(Handler)
         .framework(framework)
         .type_map_insert::<SpotifyPlayerKey>(player)
