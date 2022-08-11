@@ -59,9 +59,10 @@ impl EmittedSink {
             songbird::constants::SAMPLE_RATE_RAW,
             1024,
             2,
-        );
+        )
+        .unwrap();
 
-        let resampler_input_frames_needed = resampler.nbr_frames_needed();
+        let resampler_input_frames_needed = resampler.input_frames_max();
 
         EmittedSink {
             sender: Arc::new(sender),
@@ -89,16 +90,23 @@ impl audio_backend::Sink for EmittedSink {
         let frames_needed = self.resampler_input_frames_needed;
         let mut input_buffer = self.input_buffer.lock().unwrap();
 
+        let mut resampler = self.resampler.lock().unwrap();
+
+        let mut resampled_buffer = resampler.output_buffer_allocate();
+
         for c in packet.samples().unwrap().chunks_exact(2) {
             input_buffer.0.push(c[0] as f32);
             input_buffer.1.push(c[1] as f32);
             if input_buffer.0.len() == frames_needed {
-                let mut resampler = self.resampler.lock().unwrap();
-                let resampled = resampler
-                    .process(&[
-                        &input_buffer.0[0..frames_needed],
-                        &input_buffer.1[0..frames_needed],
-                    ])
+                resampler
+                    .process_into_buffer(
+                        &[
+                            &input_buffer.0[0..frames_needed],
+                            &input_buffer.1[0..frames_needed],
+                        ],
+                        &mut resampled_buffer,
+                        None,
+                    )
                     .unwrap();
 
                 input_buffer.0.clear();
@@ -106,8 +114,10 @@ impl audio_backend::Sink for EmittedSink {
 
                 let sender = self.sender.clone();
 
-                for i in 0..resampled[0].len() {
-                    sender.send([resampled[0][i], resampled[1][i]]).unwrap()
+                for i in 0..resampled_buffer[0].len() {
+                    sender
+                        .send([resampled_buffer[0][i], resampled_buffer[1][i]])
+                        .unwrap()
                 }
             }
         }
@@ -206,7 +216,13 @@ impl SpotifyPlayer {
         cache_limit = cache_limit.pow(9);
         cache_limit *= 4;
 
-        let cache = Cache::new(cache_dir.clone(), cache_dir.clone(), cache_dir, Some(cache_limit)).ok();
+        let cache = Cache::new(
+            cache_dir.clone(),
+            cache_dir.clone(),
+            cache_dir,
+            Some(cache_limit),
+        )
+        .ok();
 
         let (session, _) = Session::connect(session_config, credentials, cache, false)
             .await
@@ -226,9 +242,12 @@ impl SpotifyPlayer {
             ..MixerConfig::default()
         }));
 
-        let (_player, rx) = Player::new(player_config.clone(), session.clone(), mixer.get_soft_volume(), move || {
-            Box::new(cloned_sink)
-        });
+        let (_player, rx) = Player::new(
+            player_config.clone(),
+            session.clone(),
+            mixer.get_soft_volume(),
+            move || Box::new(cloned_sink),
+        );
 
         SpotifyPlayer {
             player_config,
@@ -236,7 +255,7 @@ impl SpotifyPlayer {
             session,
             spirc: None,
             event_channel: Some(Arc::new(tokio::sync::Mutex::new(rx))),
-            mixer
+            mixer,
         }
     }
 
@@ -248,7 +267,6 @@ impl SpotifyPlayer {
             has_volume_ctrl: true,
             autoplay: true,
         };
-
 
         let cloned_sink = self.emitted_sink.clone();
 
