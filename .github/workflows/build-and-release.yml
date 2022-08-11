@@ -1,9 +1,6 @@
-name: Release
+on: [push]
 
-on:
-  push:
-    tags:
-      - 'v*.*.*'
+name: Build and release
 
 jobs:
   build:
@@ -13,12 +10,14 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+
       - uses: Swatinem/rust-cache@v1
-      - name: Build
-        uses: actions-rs/cargo@v1
+
+      - uses: actions-rs/cargo@v1
         with:
           command: build
           args: --release
@@ -33,6 +32,7 @@ jobs:
 
       - name: Release
         uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: target/release/*-aoede!(*.d|*.pdb)
         env:
