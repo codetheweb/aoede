@@ -103,7 +103,6 @@ version = "0.4.2"
 dependencies = [
  "byteorder",
  "figment",
- "futures",
  "librespot",
  "rubato",
  "serde",
@@ -1692,9 +1691,9 @@ dependencies = [
 
 [[package]]
 name = "realfft"
-version = "2.0.1"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7695c87f31dc3644760f23fb59a3fed47659703abf76cf2d111f03b9e712342"
+checksum = "8028eb3fabd68ddf331f744ba9c25a939804e276d820f9b218ab25a4bd7b91b8"
 dependencies = [
  "rustfft",
 ]
@@ -1813,11 +1812,10 @@ dependencies = [
 
 [[package]]
 name = "rubato"
-version = "0.10.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "610bbefcfef7f43cbe275995b6077b74f34480efce293c30327bf44fdad871ed"
+checksum = "cd70209c27d5b08f5528bdc779ea3ffb418954e28987f9f9775c6eac41003f9c"
 dependencies = [
- "log",
  "num-complex",
  "num-integer",
  "num-traits 0.2.15",

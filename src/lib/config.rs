@@ -2,7 +2,7 @@ use figment::{
     providers::{Env, Format, Toml},
     Error, Figment,
 };
-use serde::{Deserialize};
+use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
