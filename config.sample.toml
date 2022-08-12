@@ -1,4 +1,6 @@
-DISCORD_TOKEN="the discord bot token"
-SPOTIFY_USERNAME="your spotify email"
-SPOTIFY_PASSWORD="your spotify password"
-DISCORD_USER_ID="your discord id here"
+# you will have to insert your own values here 
+
+DISCORD_TOKEN="Mjk3ODQzNDgzNzgzODU2MjMw.SxDNko.UOdRWlDuz_lFrTOeQWEuzKGBmDFdVTGns3jd4o"
+SPOTIFY_USERNAME="mail@example.com"
+SPOTIFY_PASSWORD="MySpotifyPassword"
+DISCORD_USER_ID=301780655019130880
