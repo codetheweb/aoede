@@ -22,6 +22,12 @@ Aoede is a Discord music bot that **directly** streams from **Spotify to Discord
 
 ### Docker Compose (recommended):
 
+There are a variety of image tags available:
+- `:0`: versions >= 0.0.0
+- `:0.5`: versions >= 0.5.0 and < 0.6.0
+- `:0.5.1`: an exact version specifier
+- `:latest`: whatever the latest version is
+
 ```yaml
 version: '3.4'
 
