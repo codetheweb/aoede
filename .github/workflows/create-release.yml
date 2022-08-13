@@ -20,7 +20,7 @@ jobs:
         with:
           output-file: "false"
           skip-ci: "false"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.PAT }}
           version-file: "Cargo.toml"
           version-path: "package.version"
 
