@@ -11,13 +11,19 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+      - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v1
 
-      - uses: actions-rs/cargo@v1
+      - name: Build in debug mode
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+
+      - name: Build in release mode (if tagged version)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions-rs/cargo@v1
         with:
           command: build
           args: --release
