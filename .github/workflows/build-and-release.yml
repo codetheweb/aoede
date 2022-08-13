@@ -1,6 +1,7 @@
-on: [push]
+on:
+  pull_request:
 
-name: Build and release
+name: Build
 
 jobs:
   build:
@@ -10,28 +11,10 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-
       - uses: dtolnay/rust-toolchain@stable
-
       - uses: Swatinem/rust-cache@v1
 
       - name: Build in debug mode
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions-rs/cargo@v1
         with:
           command: build
-
-      - name: Build in release mode (if tagged version)
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release
-
-      - name: Prefix binary name
-        run: cp target/release/aoede target/release/${{ matrix.os }}-aoede
-        continue-on-error: true
-
-      - name: Prefix binary name
-        run: cp target/release/aoede.exe target/release/${{ matrix.os }}-aoede.exe
-        continue-on-error: true
