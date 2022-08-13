@@ -2,14 +2,17 @@ use figment::{
     providers::{Env, Format, Toml},
     Error, Figment,
 };
-use serde::{Deserialize};
+use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct Config {
+    #[serde(alias = "DISCORD_TOKEN")]
     pub discord_token: String,
+    #[serde(alias = "SPOTIFY_USERNAME")]
     pub spotify_username: String,
+    #[serde(alias = "SPOTIFY_PASSWORD")]
     pub spotify_password: String,
+    #[serde(alias = "DISCORD_USER_ID")]
     pub discord_user_id: u64,
 }
 
@@ -17,7 +20,7 @@ impl Config {
     pub fn new() -> Result<Self, Error> {
         let config: Config = Figment::new()
             .merge(Toml::file("config.toml"))
-            .merge(Env::raw().map(|v| v.to_string().to_lowercase().into()))
+            .merge(Env::raw())
             .extract()?;
         Ok(config)
     }

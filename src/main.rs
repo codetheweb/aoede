@@ -8,6 +8,7 @@ mod lib {
     pub mod config;
     pub mod player;
 }
+use figment::error::Kind::MissingField;
 use lib::player::{SpotifyPlayer, SpotifyPlayerKey};
 use librespot::core::mercury::MercuryError;
 use librespot::playback::config::Bitrate;
@@ -15,7 +16,6 @@ use librespot::playback::player::PlayerEvent;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
-use figment::error::Kind::MissingField;
 
 use serenity::Client;
 
@@ -23,7 +23,7 @@ use serenity::prelude::TypeMapKey;
 
 use serenity::{
     async_trait,
-    client::{EventHandler, Context},
+    client::{Context, EventHandler},
     framework::StandardFramework,
     model::{gateway, gateway::Ready, id, user, voice::VoiceState},
 };
@@ -190,12 +190,7 @@ impl EventHandler for Handler {
         });
     }
 
-    async fn voice_state_update(
-        &self,
-        ctx: Context,
-        old: Option<VoiceState>,
-        new: VoiceState,
-    ) {
+    async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
         let data = ctx.data.read().await;
 
         let config = data.get::<ConfigKey>().unwrap();
@@ -297,14 +292,17 @@ async fn main() {
         .await,
     ));
 
-    let mut client = Client::builder(&config.discord_token, gateway::GatewayIntents::non_privileged())
-        .event_handler(Handler)
-        .framework(framework)
-        .type_map_insert::<SpotifyPlayerKey>(player)
-        .type_map_insert::<ConfigKey>(config)
-        .register_songbird()
-        .await
-        .expect("Err creating client");
+    let mut client = Client::builder(
+        &config.discord_token,
+        gateway::GatewayIntents::non_privileged(),
+    )
+    .event_handler(Handler)
+    .framework(framework)
+    .type_map_insert::<SpotifyPlayerKey>(player)
+    .type_map_insert::<ConfigKey>(config)
+    .register_songbird()
+    .await
+    .expect("Err creating client");
 
     let _ = client
         .start()
