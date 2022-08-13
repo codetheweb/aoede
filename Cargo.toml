@@ -1,6 +1,6 @@
 [package]
 name = "aoede"
-version = "0.4.2"
+version = "0.5.0"
 authors = ["Max Isom <hi@maxisom.me>"]
 edition = "2018"
 
