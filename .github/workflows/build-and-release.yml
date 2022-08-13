@@ -35,11 +35,3 @@ jobs:
       - name: Prefix binary name
         run: cp target/release/aoede.exe target/release/${{ matrix.os }}-aoede.exe
         continue-on-error: true
-
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/v')
-        with:
-          files: target/release/*-aoede!(*.d|*.pdb)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
