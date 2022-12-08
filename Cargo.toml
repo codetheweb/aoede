@@ -10,7 +10,7 @@ songbird = "0.3.0"
 tracing = "0.1"
 tracing-subscriber = "0.2"
 tracing-futures = "0.2"
-tokio = { version = "1.20.1", features = ["default"] }
+tokio = { version = "1.23.0", features = ["default"] }
 byteorder = "1.4.3"
 serde = "1.0"
 figment = { version = "0.10", features = ["toml", "env"] }
