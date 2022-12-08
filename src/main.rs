@@ -63,15 +63,22 @@ impl EventHandler for Handler {
             .guild(guild_id)
             .expect("Could not find guild in cache.");
 
-        let channel_id = guild
-            .voice_states
-            .get(&config.discord_user_id.into())
-            .and_then(|voice_state| voice_state.channel_id);
-        drop(guild);
+        // Check if any of the admins are in the VC
+        let user_list = guild.voice_states;
 
-        if channel_id.is_some() {
-            // Enable casting
-            player.lock().await.enable_connect().await;
+        let mut channel_ids: Vec<Option<id::ChannelId>> = Vec::new();
+        
+        for (key, value) in user_list {
+            if config.discord_admins.contains(&key.to_string()) {
+                channel_ids.push(value.channel_id);
+            }
+        }
+
+        for i in channel_ids {
+            if i.is_some() {
+                // Enable casting
+                player.lock().await.enable_connect().await;
+            }
         }
 
         let c = ctx.clone();
@@ -114,17 +121,29 @@ impl EventHandler for Handler {
                             .guild(guild_id)
                             .expect("Could not find guild in cache.");
 
-                        let channel_id = match guild
-                            .voice_states
-                            .get(&config.discord_user_id.into())
-                            .and_then(|voice_state| voice_state.channel_id)
-                        {
-                            Some(channel_id) => channel_id,
-                            None => {
-                                println!("Could not find user in VC.");
-                                continue;
+                        // Check if any of the admins are in the VC
+                        let user_list = guild.voice_states;
+                        
+                        let mut channel_ids: Vec<Option<id::ChannelId>> = Vec::new();
+                        
+                        for (key, value) in user_list {
+                            if config.discord_admins.contains(&key.to_string()) {
+                                channel_ids.push(value.channel_id);
                             }
-                        };
+                        }
+
+                        if channel_ids.len() == 0 {
+                            println!("Admin not in VC!");
+                            continue;
+                        }
+                        
+                        let mut channel_id = id::ChannelId(0);
+                        for i in channel_ids {
+                            if i.is_some() {
+                                // Choose the first channel we encounter which is non-null
+                                channel_id = i.unwrap();
+                            }
+                        }
 
                         let _handler = manager.join(guild_id, channel_id).await;
 
@@ -195,7 +214,7 @@ impl EventHandler for Handler {
 
         let config = data.get::<ConfigKey>().unwrap();
 
-        if new.user_id.to_string() != config.discord_user_id.to_string() {
+        if ! config.discord_admins.contains(&new.user_id.to_string()) {
             return;
         }
 

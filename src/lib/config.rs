@@ -12,8 +12,8 @@ pub struct Config {
     pub spotify_username: String,
     #[serde(alias = "SPOTIFY_PASSWORD")]
     pub spotify_password: String,
-    #[serde(alias = "DISCORD_USER_ID")]
-    pub discord_user_id: u64,
+    #[serde(alias = "DISCORD_ADMINS")]
+    pub discord_admins: Vec<String>,
 }
 
 impl Config {

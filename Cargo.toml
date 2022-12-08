@@ -18,7 +18,7 @@ rubato = "0.12.0"
 
 [dependencies.serenity]
 version = "0.11.5"
-features = ["client"]
+features = ["client", "utils"]
 
 [profile.dev]
 split-debuginfo = "unpacked"
