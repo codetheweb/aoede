@@ -67,7 +67,7 @@ impl EventHandler for Handler {
         let user_list = guild.voice_states;
 
         let mut channel_ids: Vec<Option<id::ChannelId>> = Vec::new();
-        
+
         for (key, value) in user_list {
             if config.discord_admins.contains(&key.to_string()) {
                 channel_ids.push(value.channel_id);
@@ -123,9 +123,9 @@ impl EventHandler for Handler {
 
                         // Check if any of the admins are in the VC
                         let user_list = guild.voice_states;
-                        
+
                         let mut channel_ids: Vec<Option<id::ChannelId>> = Vec::new();
-                        
+
                         for (key, value) in user_list {
                             if config.discord_admins.contains(&key.to_string()) {
                                 channel_ids.push(value.channel_id);
@@ -136,7 +136,7 @@ impl EventHandler for Handler {
                             println!("Admin not in VC!");
                             continue;
                         }
-                        
+
                         let mut channel_id = id::ChannelId(0);
                         for i in channel_ids {
                             if i.is_some() {
@@ -214,7 +214,7 @@ impl EventHandler for Handler {
 
         let config = data.get::<ConfigKey>().unwrap();
 
-        if ! config.discord_admins.contains(&new.user_id.to_string()) {
+        if !config.discord_admins.contains(&new.user_id.to_string()) {
             return;
         }
 
