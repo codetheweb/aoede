@@ -43,7 +43,7 @@ services:
       - DISCORD_TOKEN=
       - SPOTIFY_USERNAME=
       - SPOTIFY_PASSWORD=
-      - DISCORD_USER_ID=     # Discord user ID of the user you want Aoede to follow
+      - DISCORD_ADMINS=     # List (wrapped in single quotes) of users u want the bot to keep track of, eg value: '["100","200"]'
 ```
 
 ### Docker:
@@ -52,7 +52,7 @@ services:
 DISCORD_TOKEN=
 SPOTIFY_USERNAME=
 SPOTIFY_PASSWORD=
-DISCORD_USER_ID=
+DISCORD_ADMINS=
 ```
 
 ```bash
