@@ -2,7 +2,7 @@
 name = "aoede"
 version = "0.6.0"
 authors = ["Max Isom <hi@maxisom.me>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 librespot = {version = "0.4.2", default-features = false}
