@@ -5,7 +5,7 @@ authors = ["Max Isom <hi@maxisom.me>"]
 edition = "2018"
 
 [dependencies]
-librespot = {version = "0.4.1", default-features = false}
+librespot = {version = "0.4.2", default-features = false}
 songbird = "0.3.0"
 tracing = "0.1"
 tracing-subscriber = "0.2"
