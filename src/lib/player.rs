@@ -20,10 +20,12 @@ use librespot::playback::{
 use serenity::prelude::TypeMapKey;
 
 use std::clone::Clone;
+use std::collections::VecDeque;
 use std::sync::{
     mpsc::{sync_channel, Receiver, SyncSender},
     Arc, Mutex,
 };
+use std::time::Duration;
 use std::{io, mem};
 
 use byteorder::{ByteOrder, LittleEndian};
@@ -40,11 +42,12 @@ pub struct SpotifyPlayer {
 }
 
 pub struct EmittedSink {
-    sender: Arc<SyncSender<[f32; 2]>>,
-    pub receiver: Arc<Mutex<Receiver<[f32; 2]>>>,
+    sender: Arc<SyncSender<Vec<[f32; 2]>>>,
+    pub receiver: Arc<Mutex<Receiver<Vec<[f32; 2]>>>>,
     input_buffer: Arc<Mutex<(Vec<f32>, Vec<f32>)>>,
     resampler: Arc<Mutex<FftFixedInOut<f32>>>,
     resampler_input_frames_needed: usize,
+    songbird_buf: Arc<Mutex<VecDeque<[f32; 2]>>>,
 }
 
 impl EmittedSink {
@@ -52,7 +55,7 @@ impl EmittedSink {
         // By setting the sync_channel bound to at least the output frame size of one resampling
         // step (1120 for a chunk size of 1024 and our frequency settings) the number of
         // synchronizations needed between EmittedSink::write and EmittedSink::read can be reduced.
-        let (sender, receiver) = sync_channel::<[f32; 2]>(1120);
+        let (sender, receiver) = sync_channel::<Vec<[f32; 2]>>(1);
 
         let resampler = FftFixedInOut::<f32>::new(
             librespot::playback::SAMPLE_RATE as usize,
@@ -73,7 +76,16 @@ impl EmittedSink {
             ))),
             resampler: Arc::new(Mutex::new(resampler)),
             resampler_input_frames_needed,
+            songbird_buf: Arc::new(Mutex::new(VecDeque::new())),
         }
+    }
+
+    pub fn clear(&mut self) {
+        // drop that data
+        let receiver_lock = self.receiver.lock().unwrap();
+        let _ = receiver_lock.recv_timeout(Duration::from_millis(100));
+        self.songbird_buf.lock().unwrap().clear();
+        drop(receiver_lock);
     }
 }
 
@@ -114,11 +126,11 @@ impl audio_backend::Sink for EmittedSink {
 
                 let sender = self.sender.clone();
 
+                let mut samples = Vec::with_capacity(resampled_buffer[0].len());
                 for i in 0..resampled_buffer[0].len() {
-                    sender
-                        .send([resampled_buffer[0][i], resampled_buffer[1][i]])
-                        .unwrap()
+                    samples.push([resampled_buffer[0][i], resampled_buffer[1][i]]);
                 }
+                let _ = sender.send(samples).unwrap();
             }
         }
 
@@ -138,22 +150,18 @@ impl io::Read for EmittedSink {
             ));
         }
 
-        let receiver = self.receiver.lock().unwrap();
+        let mut songbird_buf = self.songbird_buf.lock().unwrap();
+
+        if songbird_buf.is_empty() {
+            let receiver = self.receiver.lock().unwrap();
+            *songbird_buf = receiver.recv().unwrap().into();
+        }
 
         let mut bytes_written = 0;
         while bytes_written + (sample_size - 1) < buff.len() {
-            if bytes_written == 0 {
-                // We can not return 0 bytes because songbird then thinks that the track has ended,
-                // therefore block until at least one stereo data set can be returned.
-
-                let sample = receiver.recv().unwrap();
+            if let Some(popped) = songbird_buf.pop_front() {
                 LittleEndian::write_f32_into(
-                    &sample,
-                    &mut buff[bytes_written..(bytes_written + sample_size)],
-                );
-            } else if let Ok(data) = receiver.try_recv() {
-                LittleEndian::write_f32_into(
-                    &data,
+                    &popped,
                     &mut buff[bytes_written..(bytes_written + sample_size)],
                 );
             } else {
@@ -190,6 +198,7 @@ impl Clone for EmittedSink {
             input_buffer: self.input_buffer.clone(),
             resampler: self.resampler.clone(),
             resampler_input_frames_needed: self.resampler_input_frames_needed,
+            songbird_buf: self.songbird_buf.clone(),
         }
     }
 }

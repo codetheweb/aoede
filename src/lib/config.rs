@@ -14,6 +14,8 @@ pub struct Config {
     pub spotify_password: String,
     #[serde(alias = "DISCORD_USER_ID")]
     pub discord_user_id: u64,
+    #[serde(alias = "GUILD_ID")]
+    pub guild_id: u64,
 }
 
 impl Config {

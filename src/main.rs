@@ -2,6 +2,7 @@ use std::env;
 use std::process::exit;
 
 use lib::config::Config;
+use serenity::model::prelude::{ChannelId, GuildId};
 use songbird::{input, SerenityInit};
 
 mod lib {
@@ -45,17 +46,18 @@ impl EventHandler for Handler {
     }
 
     async fn cache_ready(&self, ctx: Context, guilds: Vec<id::GuildId>) {
-        let guild_id = match guilds.first() {
-            Some(guild_id) => *guild_id,
-            None => {
-                panic!("Not currently in any guilds.");
-            }
-        };
+        // let guild_id = match guilds.first() {
+        //     Some(guild_id) => *guild_id,
+        //     None => {
+        //         panic!("Not currently in any guilds.");
+        //     }
+        // };
 
         let data = ctx.data.read().await;
 
         let player = data.get::<SpotifyPlayerKey>().unwrap().clone();
         let config = data.get::<ConfigKey>().unwrap().clone();
+        let guild_id = GuildId(config.guild_id);
 
         // Handle case when user is in VC when bot starts
         let guild = ctx
@@ -104,6 +106,73 @@ impl EventHandler for Handler {
                     }
 
                     PlayerEvent::Started { .. } => {
+                        // let manager = songbird::get(&c)
+                        //     .await
+                        //     .expect("Songbird Voice client placed in at initialization.")
+                        //     .clone();
+                        //
+                        // let guild = c
+                        //     .cache
+                        //     .guild(guild_id)
+                        //     .expect("Could not find guild in cache.");
+                        //
+                        // // let channel_id = match guild
+                        // //     .voice_states
+                        // //     .get(&config.discord_user_id.into())
+                        // //     .and_then(|voice_state| voice_state.channel_id)
+                        // // {
+                        // //     Some(channel_id) => channel_id,
+                        // //     None => {
+                        // //         println!("Could not find user in VC.");
+                        // //         continue;
+                        // //     }
+                        // // };
+                        // let channel_id = ChannelId(1143595438801432677);
+                        //
+                        // let _handler = manager.join(guild_id, channel_id).await;
+                        //
+                        // if let Some(handler_lock) = manager.get(guild_id) {
+                        //     let mut handler = handler_lock.lock().await;
+                        //
+                        //     let mut decoder = input::codec::OpusDecoderState::new().unwrap();
+                        //     decoder.allow_passthrough = false;
+                        //
+                        //     let source = input::Input::new(
+                        //         true,
+                        //         input::reader::Reader::Extension(Box::new(
+                        //             player.lock().await.emitted_sink.clone(),
+                        //         )),
+                        //         input::codec::Codec::FloatPcm,
+                        //         input::Container::Raw,
+                        //         None,
+                        //     );
+                        //
+                        //     handler.set_bitrate(songbird::driver::Bitrate::Auto);
+                        //
+                        //     let track_handle = handler.play_only_source(source);
+                        //     track_handle.stop()
+                        // } else {
+                        //     println!("Could not fetch guild by ID.");
+                        // }
+                    }
+
+                    PlayerEvent::Paused { .. } => {
+                        c.set_presence(None, user::OnlineStatus::Online).await;
+
+                        let manager = songbird::get(&c)
+                            .await
+                            .expect("Songbird Voice client placed in at initialization.")
+                            .clone();
+
+                        if let Some(call) = manager.get(guild_id) {
+                            call.lock().await.stop();
+                        }
+
+                        let mut sink = player.lock().await.emitted_sink.clone();
+                        sink.clear();
+                    }
+
+                    PlayerEvent::Playing { track_id, .. } => {
                         let manager = songbird::get(&c)
                             .await
                             .expect("Songbird Voice client placed in at initialization.")
@@ -149,14 +218,8 @@ impl EventHandler for Handler {
                             handler.play_only_source(source);
                         } else {
                             println!("Could not fetch guild by ID.");
-                        }
-                    }
+                        };
 
-                    PlayerEvent::Paused { .. } => {
-                        c.set_presence(None, user::OnlineStatus::Online).await;
-                    }
-
-                    PlayerEvent::Playing { track_id, .. } => {
                         let track: Result<librespot::metadata::Track, MercuryError> =
                             librespot::metadata::Metadata::get(
                                 &player.lock().await.session,
@@ -201,10 +264,7 @@ impl EventHandler for Handler {
 
         let player = data.get::<SpotifyPlayerKey>().unwrap();
 
-        let guild = ctx
-            .cache
-            .guild(ctx.cache.guilds().first().unwrap())
-            .unwrap();
+        let guild = ctx.cache.guild(GuildId(config.guild_id)).unwrap();
 
         // If user just connected
         if old.clone().is_none() {
