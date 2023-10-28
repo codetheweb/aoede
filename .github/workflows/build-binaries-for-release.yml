@@ -1,37 +1,37 @@
-on:
-  push:
-    tags:
-      - 'v*.*.*'
+# on:
+#   push:
+#     tags:
+#       - 'v*.*.*'
 
-name: Build binaries for release
+# name: Build binaries for release
 
-jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    steps:
-      - uses: actions/checkout@v2
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v1
-      - name: Build in release mode
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release
+# jobs:
+#   build:
+#     runs-on: ${{ matrix.os }}
+#     strategy:
+#       matrix:
+#         os: [ubuntu-latest, windows-latest, macos-latest]
+#     steps:
+#       - uses: actions/checkout@v2
+#       - uses: dtolnay/rust-toolchain@stable
+#       - uses: Swatinem/rust-cache@v1
+#       - name: Build in release mode
+#         uses: actions-rs/cargo@v1
+#         with:
+#           command: build
+#           args: --release
 
-      - name: Prefix binary name
-        run: cp target/release/aoede target/release/${{ matrix.os }}-aoede
-        continue-on-error: true
+#       - name: Prefix binary name
+#         run: cp target/release/aoede target/release/${{ matrix.os }}-aoede
+#         continue-on-error: true
 
-      - name: Prefix binary name
-        run: cp target/release/aoede.exe target/release/${{ matrix.os }}-aoede.exe
-        continue-on-error: true
+#       - name: Prefix binary name
+#         run: cp target/release/aoede.exe target/release/${{ matrix.os }}-aoede.exe
+#         continue-on-error: true
 
-      - name: Add to release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: target/release/*-aoede!(*.d|*.pdb)
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+#       - name: Add to release
+#         uses: softprops/action-gh-release@v1
+#         with:
+#           files: target/release/*-aoede!(*.d|*.pdb)
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.PAT }}
