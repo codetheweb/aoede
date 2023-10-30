@@ -37,6 +37,7 @@ pub struct SpotifyPlayer {
     pub spirc: Option<Box<Spirc>>,
     pub event_channel: Option<Arc<tokio::sync::Mutex<PlayerEventChannel>>>,
     mixer: Box<SoftMixer>,
+    pub bot_autoplay: bool,
 }
 
 pub struct EmittedSink {
@@ -206,6 +207,7 @@ impl SpotifyPlayer {
         password: String,
         quality: Bitrate,
         cache_dir: Option<String>,
+        bot_autoplay: bool,
     ) -> SpotifyPlayer {
         let credentials = Credentials::with_password(username, password);
 
@@ -256,6 +258,7 @@ impl SpotifyPlayer {
             spirc: None,
             event_channel: Some(Arc::new(tokio::sync::Mutex::new(rx))),
             mixer,
+            bot_autoplay,
         }
     }
 
@@ -265,7 +268,7 @@ impl SpotifyPlayer {
             device_type: DeviceType::AudioDongle,
             initial_volume: None,
             has_volume_ctrl: true,
-            autoplay: true,
+            autoplay: self.bot_autoplay,
         };
 
         let cloned_sink = self.emitted_sink.clone();
