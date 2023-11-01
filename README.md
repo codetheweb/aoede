@@ -43,8 +43,8 @@ services:
       - DISCORD_TOKEN=
       - SPOTIFY_USERNAME=
       - SPOTIFY_PASSWORD=
-      - DISCORD_USER_ID=     # Discord user ID of the user you want Aoede to follow
-      - SPOTIFY_BOT_AUTOPLAY=
+      - DISCORD_USER_ID=        # Discord user ID of the user you want Aoede to follow
+      - SPOTIFY_BOT_AUTOPLAY=   # Autoplay similar songs when your music ends (true/false)
 ```
 
 ### Docker:
