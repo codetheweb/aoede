@@ -288,6 +288,7 @@ async fn main() {
             config.spotify_password.clone(),
             Bitrate::Bitrate320,
             cache_dir,
+            config.spotify_bot_autoplay,
         )
         .await,
     ));
