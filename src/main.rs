@@ -37,11 +37,9 @@ impl TypeMapKey for ConfigKey {
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, ctx: Context, ready: Ready) {
+    async fn ready(&self, _ctx: Context, ready: Ready) {
         println!("Ready!");
         println!("Invite me with https://discord.com/api/oauth2/authorize?client_id={}&permissions=36700160&scope=bot", ready.user.id);
-
-        ctx.invisible().await;
     }
 
     async fn cache_ready(&self, ctx: Context, guilds: Vec<id::GuildId>) {
@@ -209,7 +207,6 @@ impl EventHandler for Handler {
         // If user just connected
         if old.clone().is_none() {
             // Enable casting
-            ctx.set_presence(None, user::OnlineStatus::Online).await;
             player.lock().await.enable_connect().await;
             return;
         }
