@@ -43,33 +43,29 @@ impl EventHandler for Handler {
     }
 
     async fn cache_ready(&self, ctx: Context, guilds: Vec<id::GuildId>) {
-        let guild_id = match guilds.first() {
-            Some(guild_id) => *guild_id,
-            None => {
-                panic!("Not currently in any guilds.");
-            }
-        };
-
         let data = ctx.data.read().await;
 
         let player = data.get::<SpotifyPlayerKey>().unwrap().clone();
         let config = data.get::<ConfigKey>().unwrap().clone();
 
         // Handle case when user is in VC when bot starts
-        let guild = ctx
-            .cache
-            .guild(guild_id)
-            .expect("Could not find guild in cache.");
+        for guild_id in guilds {
+            let guild = ctx
+                .cache
+                .guild(guild_id)
+                .expect("Could not find guild in cache.");
 
-        let channel_id = guild
-            .voice_states
-            .get(&config.discord_user_id.into())
-            .and_then(|voice_state| voice_state.channel_id);
-        drop(guild);
+            let channel_id = guild
+                .voice_states
+                .get(&config.discord_user_id.into())
+                .and_then(|voice_state| voice_state.channel_id);
+            drop(guild);
 
-        if channel_id.is_some() {
-            // Enable casting
-            player.lock().await.enable_connect().await;
+            if channel_id.is_some() {
+                // Enable casting
+                player.lock().await.enable_connect().await;
+                break;
+            }
         }
 
         let c = ctx.clone();
@@ -98,7 +94,9 @@ impl EventHandler for Handler {
                             .expect("Songbird Voice client placed in at initialization.")
                             .clone();
 
-                        let _ = manager.remove(guild_id).await;
+                        for guild_id in c.cache.guilds() {
+                            let _ = manager.remove(guild_id).await;
+                        }
                     }
 
                     PlayerEvent::Started { .. } => {
@@ -107,21 +105,19 @@ impl EventHandler for Handler {
                             .expect("Songbird Voice client placed in at initialization.")
                             .clone();
 
-                        let guild = c
-                            .cache
-                            .guild(guild_id)
-                            .expect("Could not find guild in cache.");
-
-                        let channel_id = match guild
-                            .voice_states
-                            .get(&config.discord_user_id.into())
-                            .and_then(|voice_state| voice_state.channel_id)
-                        {
-                            Some(channel_id) => channel_id,
-                            None => {
-                                println!("Could not find user in VC.");
-                                continue;
-                            }
+                        // Search for guild and channel ids by user id
+                        let Some((guild_id, channel_id)) =
+                            c.cache.guilds().iter().find_map(|gid| {
+                                c.cache
+                                    .guild(gid)
+                                    .expect("Could not find guild in cache.")
+                                    .voice_states
+                                    .get(&config.discord_user_id.into())
+                                    .map(|state| (gid.to_owned(), state.channel_id.unwrap()))
+                            })
+                        else {
+                            println!("Could not find user in VC.");
+                            continue;
                         };
 
                         let _handler = manager.join(guild_id, channel_id).await;
@@ -199,11 +195,6 @@ impl EventHandler for Handler {
 
         let player = data.get::<SpotifyPlayerKey>().unwrap();
 
-        let guild = ctx
-            .cache
-            .guild(ctx.cache.guilds().first().unwrap())
-            .unwrap();
-
         // If user just connected
         if old.clone().is_none() {
             // Enable casting
@@ -223,16 +214,40 @@ impl EventHandler for Handler {
                 .expect("Songbird Voice client placed in at initialization.")
                 .clone();
 
-            let _handler = manager.remove(guild.id).await;
+            let _handler = manager.remove(new.guild_id.unwrap()).await;
 
             return;
         }
 
         // If user moved channels
-        if old.unwrap().channel_id.unwrap() != new.channel_id.unwrap() {
+        if old.clone().unwrap().channel_id.unwrap() != new.channel_id.unwrap() {
             let bot_id = ctx.cache.current_user_id();
 
-            let bot_channel = guild
+            // A bit hacky way to get old guild id because
+            // its not present when switching voice channels
+            // for the first time for some reason
+            let old_guild_id = match old.clone().unwrap().guild_id {
+                Some(gid) => gid,
+                None => ctx
+                    .cache
+                    .guilds()
+                    .iter()
+                    .find(|x| {
+                        ctx.cache
+                            .guild(**x)
+                            .unwrap()
+                            .channels
+                            .iter()
+                            .any(|ch| ch.1.id() == new.channel_id.unwrap())
+                    })
+                    .unwrap()
+                    .to_owned(),
+            };
+
+            let bot_channel = ctx
+                .cache
+                .guild(old_guild_id)
+                .unwrap()
                 .voice_states
                 .get(&bot_id)
                 .and_then(|voice_state| voice_state.channel_id);
@@ -243,8 +258,12 @@ impl EventHandler for Handler {
                     .expect("Songbird Voice client placed in at initialization.")
                     .clone();
 
-                if let Some(guild_id) = ctx.cache.guilds().first() {
-                    let _handler = manager.join(*guild_id, new.channel_id.unwrap()).await;
+                if old_guild_id != new.guild_id.unwrap() {
+                    let _handler = manager.remove(old_guild_id).await;
+                } else {
+                    let _handler = manager
+                        .join(new.guild_id.unwrap(), new.channel_id.unwrap())
+                        .await;
                 }
             }
 
