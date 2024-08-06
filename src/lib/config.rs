@@ -16,6 +16,8 @@ pub struct Config {
     pub discord_user_id: u64,
     #[serde(alias = "SPOTIFY_BOT_AUTOPLAY")]
     pub spotify_bot_autoplay: bool,
+    #[serde(alias = "SPOTIFY_DEVICE_NAME")]
+    pub spotify_device_name: String,
 }
 
 impl Config {
