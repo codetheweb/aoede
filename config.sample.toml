@@ -3,4 +3,4 @@ SPOTIFY_USERNAME="your spotify email"
 SPOTIFY_PASSWORD="your spotify password"
 DISCORD_USER_ID="your discord id here"
 SPOTIFY_BOT_AUTOPLAY=true
-SPOTIFY_DEVICE_NAME="Aoede"
+SPOTIFY_DEVICE_NAME="custom device name in spotify, optional"
