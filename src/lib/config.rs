@@ -16,6 +16,13 @@ pub struct Config {
     pub discord_user_id: u64,
     #[serde(alias = "SPOTIFY_BOT_AUTOPLAY")]
     pub spotify_bot_autoplay: bool,
+    #[serde(alias = "SPOTIFY_DEVICE_NAME")]
+    #[serde(default = "default_spotify_device_name")]
+    pub spotify_device_name: String,
+}
+
+fn default_spotify_device_name() -> String {
+    "Aoede".to_string()
 }
 
 impl Config {
