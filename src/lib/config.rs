@@ -21,7 +21,7 @@ pub struct Config {
     pub spotify_device_name: String,
 }
 
-fn default_spotify_device_name() -> String{
+fn default_spotify_device_name() -> String {
     "Aoede".to_string()
 }
 

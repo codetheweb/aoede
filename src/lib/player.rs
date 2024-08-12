@@ -261,7 +261,7 @@ impl SpotifyPlayer {
             event_channel: Some(Arc::new(tokio::sync::Mutex::new(rx))),
             mixer,
             bot_autoplay,
-            device_name
+            device_name,
         }
     }
 
