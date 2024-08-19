@@ -20,7 +20,7 @@ Aoede is a Discord music bot that **directly** streams from **Spotify to Discord
 ### Notes:
 ⚠️ Aoede only supports bot tokens. Providing a user token won't work.
 
-Aoede will appear offline until you join a voice channel it has access it.
+Aoede will appear offline until you join a voice channel it has access to.
 
 ### Docker Compose (recommended):
 
@@ -41,8 +41,6 @@ services:
       - ./aoede:/data
     environment:
       - DISCORD_TOKEN=
-      - SPOTIFY_USERNAME=
-      - SPOTIFY_PASSWORD=
       - DISCORD_USER_ID=        # Discord user ID of the user you want Aoede to follow
       - SPOTIFY_BOT_AUTOPLAY=   # Autoplay similar songs when your music ends (true/false)
       - SPOTIFY_DEVICE_NAME=
@@ -52,8 +50,6 @@ services:
 ```env
 # .env
 DISCORD_TOKEN=
-SPOTIFY_USERNAME=
-SPOTIFY_PASSWORD=
 DISCORD_USER_ID=
 SPOTIFY_BOT_AUTOPLAY=
 SPOTIFY_DEVICE_NAME=
@@ -88,3 +84,26 @@ Requirements:
 - Cargo
 
 Run `cargo build --release`. This will produce a binary in `target/release/aoede`. Set the required environment variables (see the Docker Compose section), then run the binary.
+
+## 🎵 Spotify Authentication
+
+Aoede now uses Spotify's zeroconf authentication mechanism. Here's how to authenticate:
+
+1. Start Aoede for the first time. It will print a message with instructions.
+2. Open the Spotify desktop app on the same network as Aoede.
+3. In the Spotify app, go to "Devices Available" and look for a device named "Aoede" (or your custom device name if set).
+4. Click on the Aoede device to connect. This will authenticate Aoede with your Spotify account.
+5. Aoede will save the credentials for future use. You only need to do this once.
+
+Note: Make sure your Spotify account has an active Premium subscription, as this is required for the Spotify Connect feature to work.
+
+## 🚀 Usage
+
+Once Aoede is running and authenticated:
+
+1. Join a voice channel in Discord.
+2. Aoede will automatically join the same channel.
+3. Use your Spotify app (desktop, mobile, or web) to control playback.
+4. The music will stream directly to your Discord voice channel.
+
+Enjoy your music!

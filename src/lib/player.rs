@@ -39,6 +39,7 @@ pub struct SpotifyPlayer {
     mixer: Box<SoftMixer>,
     pub bot_autoplay: bool,
     pub device_name: String,
+    credentials: Credentials,
 }
 
 pub struct EmittedSink {
@@ -204,15 +205,10 @@ impl TypeMapKey for SpotifyPlayerKey {
 
 impl SpotifyPlayer {
     pub async fn new(
-        username: String,
-        password: String,
-        quality: Bitrate,
         cache_dir: Option<String>,
         bot_autoplay: bool,
         device_name: String,
     ) -> SpotifyPlayer {
-        let credentials = Credentials::with_password(username, password);
-
         let session_config = SessionConfig::default();
 
         // 4 GB
@@ -228,12 +224,18 @@ impl SpotifyPlayer {
         )
         .ok();
 
-        let (session, _) = Session::connect(session_config, credentials, cache, false)
-            .await
-            .expect("Error creating session");
+        let (session, credentials) = Session::connect(
+            session_config,
+            cache,
+            None,
+            device_name.clone(),
+            false,
+        )
+        .await
+        .expect("Error creating session");
 
         let player_config = PlayerConfig {
-            bitrate: quality,
+            bitrate: Bitrate::Bitrate320,
             ..Default::default()
         };
 
@@ -262,6 +264,7 @@ impl SpotifyPlayer {
             mixer,
             bot_autoplay,
             device_name,
+            credentials,
         }
     }
 

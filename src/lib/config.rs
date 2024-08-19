@@ -8,10 +8,6 @@ use serde::Deserialize;
 pub struct Config {
     #[serde(alias = "DISCORD_TOKEN")]
     pub discord_token: String,
-    #[serde(alias = "SPOTIFY_USERNAME")]
-    pub spotify_username: String,
-    #[serde(alias = "SPOTIFY_PASSWORD")]
-    pub spotify_password: String,
     #[serde(alias = "DISCORD_USER_ID")]
     pub discord_user_id: u64,
     #[serde(alias = "SPOTIFY_BOT_AUTOPLAY")]
