@@ -87,7 +87,7 @@ Run `cargo build --release`. This will produce a binary in `target/release/aoede
 
 ## 🎵 Spotify Authentication
 
-Aoede now uses Spotify's zeroconf authentication mechanism. Here's how to authenticate:
+Aoede uses Spotify's zeroconf authentication mechanism. Here's how to authenticate:
 
 1. Start Aoede for the first time. It will print a message with instructions.
 2. Open the Spotify desktop app on the same network as Aoede.
@@ -95,15 +95,9 @@ Aoede now uses Spotify's zeroconf authentication mechanism. Here's how to authen
 4. Click on the Aoede device to connect. This will authenticate Aoede with your Spotify account.
 5. Aoede will save the credentials for future use. You only need to do this once.
 
-Note: Make sure your Spotify account has an active Premium subscription, as this is required for the Spotify Connect feature to work.
-
-## 🚀 Usage
-
 Once Aoede is running and authenticated:
 
 1. Join a voice channel in Discord.
 2. Aoede will automatically join the same channel.
 3. Use your Spotify app (desktop, mobile, or web) to control playback.
 4. The music will stream directly to your Discord voice channel.
-
-Enjoy your music!
