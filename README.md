@@ -37,6 +37,7 @@ services:
   aoede:
     image: codetheweb/aoede
     restart: always
+    network_mode: host
     volumes:
       - ./aoede:/data
     environment:
@@ -56,7 +57,7 @@ SPOTIFY_DEVICE_NAME=
 ```
 
 ```bash
-docker run --rm -d --env-file .env codetheweb/aoede
+docker run --rm -d --env-file .env codetheweb/aoede --net=host
 ```
 
 ### Prebuilt Binaries:
