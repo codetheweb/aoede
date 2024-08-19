@@ -15,6 +15,11 @@ pub struct Config {
     #[serde(alias = "SPOTIFY_DEVICE_NAME")]
     #[serde(default = "default_spotify_device_name")]
     pub spotify_device_name: String,
+    #[serde(alias = "SPOTIFY_USERNAME")]
+    pub spotify_username: String,
+    #[serde(alias = "SPOTIFY_ENCRYPTED_BLOB")]
+    #[serde(default)]
+    pub spotify_encrypted_blob: Vec<u8>,
 }
 
 fn default_spotify_device_name() -> String {
