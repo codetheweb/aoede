@@ -37,7 +37,7 @@ services:
   aoede:
     image: codetheweb/aoede
     restart: always
-    network_mode: host
+    network_mode: host # needed for initial setup
     volumes:
       - ./aoede:/data
     environment:
