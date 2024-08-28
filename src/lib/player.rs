@@ -5,6 +5,7 @@ use librespot::core::{
     config::{ConnectConfig, DeviceType, SessionConfig},
     session::Session,
 };
+use librespot::discovery::Discovery;
 use librespot::playback::{
     audio_backend,
     audio_backend::SinkResult,
@@ -29,6 +30,10 @@ use std::{io, mem};
 use byteorder::{ByteOrder, LittleEndian};
 use rubato::{FftFixedInOut, Resampler};
 use songbird::input::reader::MediaSource;
+
+use crate::lib::config::Config;
+
+use futures_util::StreamExt;
 
 pub struct SpotifyPlayer {
     player_config: PlayerConfig,
@@ -204,15 +209,14 @@ impl TypeMapKey for SpotifyPlayerKey {
 
 impl SpotifyPlayer {
     pub async fn new(
-        username: String,
-        password: String,
         quality: Bitrate,
         cache_dir: Option<String>,
         bot_autoplay: bool,
         device_name: String,
+        spotify_username: String,
+        config: &mut Config,
+        device_id: String,
     ) -> SpotifyPlayer {
-        let credentials = Credentials::with_password(username, password);
-
         let session_config = SessionConfig::default();
 
         // 4 GB
@@ -228,9 +232,39 @@ impl SpotifyPlayer {
         )
         .ok();
 
-        let (session, _) = Session::connect(session_config, credentials, cache, false)
-            .await
-            .expect("Error creating session");
+        let (session, credentials) = if config.spotify_encrypted_blob.is_empty() {
+            // Initiate zeroconf authentication process
+            println!("Aoede requires some initial setup. Please open your Spotify app and connect to the '{}' device to proceed.", device_name);
+            
+            let device_id = uuid::Uuid::new_v4().to_string(); // Generate a unique device ID
+
+            let mut discovery = Discovery::builder(device_id)
+                .name(device_name.clone())
+                .device_type(DeviceType::AudioDongle)
+                .launch()
+                .expect("Failed to launch discovery");
+
+            let credentials = discovery.next().await.expect("Failed to get credentials");
+
+            // Save the encrypted blob for future use
+            config.spotify_encrypted_blob = credentials.auth_data.clone();
+
+            // Here you should save the updated config to a file or database
+            // For example:
+            // save_config(config).expect("Failed to save config");
+
+            Session::connect(session_config, credentials.clone(), cache, false).await
+                .expect("Error creating session")
+        } else {
+            let credentials = Credentials::with_blob(
+                spotify_username,
+                &config.spotify_encrypted_blob,
+                &device_id
+            );
+
+            Session::connect(session_config, credentials.clone(), cache, false).await
+                .expect("Error creating session")
+        };
 
         let player_config = PlayerConfig {
             bitrate: quality,
@@ -253,11 +287,25 @@ impl SpotifyPlayer {
             move || Box::new(cloned_sink),
         );
 
+        let config = ConnectConfig {
+            name: device_name.clone(),
+            device_type: DeviceType::AudioDongle,
+            initial_volume: None,
+            has_volume_ctrl: true,
+            autoplay: bot_autoplay,
+        };
+
+        let (spirc, task) = Spirc::new(config, session.clone(), _player, mixer.clone());
+
+        tokio::spawn(async move {
+            task.await;
+        });
+
         SpotifyPlayer {
             player_config,
             emitted_sink,
             session,
-            spirc: None,
+            spirc: Some(Box::new(spirc)),
             event_channel: Some(Arc::new(tokio::sync::Mutex::new(rx))),
             mixer,
             bot_autoplay,
