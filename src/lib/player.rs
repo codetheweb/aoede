@@ -234,7 +234,7 @@ impl SpotifyPlayer {
 
         let (session, credentials) = if config.spotify_encrypted_blob.is_empty() {
             // Initiate zeroconf authentication process
-            println!("Please open the Spotify app and connect to the '{}' device.", device_name);
+            println!("Aoede requires some initial setup. Please open your Spotify app and connect to the '{}' device to proceed.", device_name);
             
             let device_id = uuid::Uuid::new_v4().to_string(); // Generate a unique device ID
 
