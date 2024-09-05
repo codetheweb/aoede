@@ -1,9 +1,9 @@
-FROM rust:alpine as dependencies
+FROM rust:alpine AS dependencies
 
 RUN apk add --no-cache alpine-sdk cmake automake autoconf opus libtool
 RUN cargo install cargo-chef
 
-FROM dependencies as planner
+FROM dependencies AS planner
 WORKDIR app
 
 # We only pay the installation cost once,
@@ -13,12 +13,12 @@ WORKDIR app
 COPY . .
 RUN cargo chef prepare  --recipe-path recipe.json
 
-FROM dependencies as cacher
+FROM dependencies AS cacher
 WORKDIR app
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
-FROM dependencies as builder
+FROM dependencies AS builder
 WORKDIR app
 COPY . .
 # Copy over the cached dependencies
@@ -26,7 +26,7 @@ COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 RUN cargo build --release --bin aoede
 
-FROM alpine as runtime
+FROM alpine AS runtime
 WORKDIR app
 COPY --from=builder /app/target/release/aoede /usr/local/bin
 
