@@ -278,7 +278,7 @@ async fn main() {
 
     let framework = StandardFramework::new();
 
-    let config = match Config::new() {
+    let mut config = match Config::new() {
         Ok(config) => config,
         Err(error) => {
             println!("Couldn't read config");
@@ -298,14 +298,17 @@ async fn main() {
         cache_dir = Some(c);
     }
 
+    let device_id = uuid::Uuid::new_v4().to_string(); // Generate a unique device ID
+
     let player = Arc::new(Mutex::new(
         SpotifyPlayer::new(
-            config.spotify_username.clone(),
-            config.spotify_password.clone(),
             Bitrate::Bitrate320,
             cache_dir,
             config.spotify_bot_autoplay,
             config.spotify_device_name.clone(),
+            config.spotify_username.clone(),
+            &mut config, // Pass a mutable reference
+            device_id,
         )
         .await,
     ));
