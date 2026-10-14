@@ -285,18 +285,21 @@ async fn main() {
             if let MissingField(f) = error.kind {
                 println!("Missing field: '{}'", f.to_uppercase());
             } else {
-                println!("Error: {:?}", error);
+                println!("Error: {error:?}");
                 exit(2)
             }
             exit(1)
         }
     };
 
-    let mut cache_dir = None;
-
-    if let Ok(c) = env::var("CACHE_DIR") {
-        cache_dir = Some(c);
-    }
+    // Use cache_dir from config, with environment variable override
+    let cache_dir = if let Ok(c) = env::var("CACHE_DIR") {
+        Some(c)
+    } else if !config.cache_dir.is_empty() {
+        Some(config.cache_dir.clone())
+    } else {
+        None
+    };
 
     let player = Arc::new(Mutex::new(
         SpotifyPlayer::new(
@@ -325,5 +328,5 @@ async fn main() {
     let _ = client
         .start()
         .await
-        .map_err(|why| println!("Client ended: {:?}", why));
+        .map_err(|why| println!("Client ended: {why:?}"));
 }

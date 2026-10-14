@@ -211,8 +211,6 @@ impl SpotifyPlayer {
         bot_autoplay: bool,
         device_name: String,
     ) -> SpotifyPlayer {
-        let credentials = Credentials::with_password(username, password);
-
         let session_config = SessionConfig::default();
 
         // 4 GB
@@ -227,6 +225,23 @@ impl SpotifyPlayer {
             Some(cache_limit),
         )
         .ok();
+
+        // Try to load credentials from cache first
+        let credentials = if let Some(ref cache) = cache {
+            match cache.credentials() {
+                Some(cached_creds) => {
+                    println!("Using cached credentials");
+                    cached_creds
+                }
+                None => {
+                    println!("No cached credentials found, trying username/password");
+                    Credentials::with_password(username, password)
+                }
+            }
+        } else {
+            println!("No cache available, using username/password");
+            Credentials::with_password(username, password)
+        };
 
         let (session, _) = Session::connect(session_config, credentials, cache, false)
             .await

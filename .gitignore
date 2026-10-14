@@ -1,3 +1,21 @@
-/target
-/cache
+# Rust build artifacts
+/target/
+
+# IDE files
+.vscode/
+
+# Spotify authentication
+credentials.json
+aoede-cache/
+
+# Authentication tools (downloaded at runtime)
+librespot-auth-x86_64-*
+
+# Config
 config.toml
+
+# Development files
+CLAUDE.md
+
+# Aoede cache
+aoede-cache/

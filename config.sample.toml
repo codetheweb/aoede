@@ -1,6 +1,17 @@
-DISCORD_TOKEN="the discord bot token"
-SPOTIFY_USERNAME="your spotify email"
-SPOTIFY_PASSWORD="your spotify password"
-DISCORD_USER_ID="your discord id here"
-SPOTIFY_BOT_AUTOPLAY=true
-SPOTIFY_DEVICE_NAME="custom device name in spotify, optional"
+# Discord bot token (required)
+discord_token = "your_discord_bot_token_here"
+
+# Discord user ID to follow (required)
+discord_user_id = 123456789
+
+# Cache directory for Spotify credentials (recommended)
+cache_dir = "aoede-cache"
+
+# Spotify credentials (optional - use cached credentials instead)
+# Note: Username/password auth is deprecated by Spotify as of 2024
+spotify_username = ""
+spotify_password = ""
+
+# Optional settings
+spotify_bot_autoplay = false
+spotify_device_name = "Aoede"
